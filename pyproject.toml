@@ -1,0 +1,7 @@
+[project]
+name = "agent-sentinel"
+version = "0.1.0"
+description = "Agent Sentinel — Gemini-powered governance plane for enterprise AI agents"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
