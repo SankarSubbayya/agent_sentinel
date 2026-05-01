@@ -106,13 +106,13 @@ City Frame (SF travel planner), EverMemOS (memory system), moblio, PlushPilot (`
 
 ## Current State: `transform_enterprise_ai/`
 
-Empty scaffold:
-- [pyproject.toml](pyproject.toml) — `transform-enterprise-ai`, Python ≥ 3.12, no deps
-- [main.py](main.py) — `print("Hello from transform-enterprise-ai!")`
-- [README.md](README.md) — empty
-- `.rocketride/` directory exists but is **not used** by this project. We're building a Gemini-native pipeline (PolicyPipe — see below) instead, to keep direct, idiomatic Gemini API usage visible to sponsor judges. The `.rocketride/` folder and `.claude/rules/rocketride.md` rule can be ignored for this project.
-- `.env` exists (likely Gemini key — verify before assuming)
-- Git repo on `main`, no commits yet
+Initial scaffold:
+- [pyproject.toml](pyproject.toml) — `agent-sentinel`, Python ≥ 3.12, no deps yet
+- [main.py](main.py) — placeholder entry point
+- [README.md](README.md) — public-facing project description
+- [PRD.md](PRD.md) — full product requirements doc
+- `.env` (gitignored) — Gemini API key + Postgres URL + Sentinel signing key go here
+- Git repo on `main`, pushed to https://github.com/SankarSubbayya/agent_sentinel
 
 ---
 
@@ -191,7 +191,7 @@ A **Gemini-powered control plane** that sits between enterprise multi-agent syst
 - **Frontend:** Next.js + Tailwind + shadcn (gas-oracle stack — known good)
 - **Infra:** Docker compose for the demo, Vercel + Supabase for the public URL
 
-### PolicyPipe (replaces RocketRide for this project)
+### PolicyPipe
 
 Gemini-native ingestion + retrieval pipeline for policy documents. Five files (~600 LOC):
 - `policy_pipe/extractor.py` — Gemini 2.5 Flash multimodal: PDF → structured sections + auto-tagged domains (`PII`, `financial`, `vendor`, `security`, `export`, `retention`).
@@ -200,9 +200,9 @@ Gemini-native ingestion + retrieval pipeline for policy documents. Five files (~
 - `policy_pipe/loader.py` — `fetch(domain_tags, role) → list[cache_id]`. Pure SQL lookup, no inference.
 - `policy_pipe/refresher.py` — APScheduler cron (every 6h): re-uploads files nearing TTL, atomically swaps `cache_id`.
 
-**Why not RocketRide / LlamaIndex / LangChain RAG:**
+**Design rationale:**
 1. Sentinel deliberately avoids chunking — Pro consumes whole policy docs in 1M context.
-2. Sponsor judges should see direct Gemini Files API + Cached Content usage, not a framework wrapper.
+2. Direct Gemini Files API + Cached Content usage is visible to sponsor judges (no framework wrapper hiding it).
 3. Audit receipts cite exact `policy_version` + `cache_id` — easier to control end-to-end.
 4. Minimal deps for a 7-day hackathon build.
 
@@ -225,6 +225,5 @@ Receipt fragment cited from each decision:
 
 - The user has deep experience in: multi-agent orchestration, healthcare AI, OpenClaw skills, Gemini integration, Arc/Circle nanopayments, RocketRide pipelines.
 - The user values: working live demos > slide-ware; defensible technical metrics; reusing patterns across projects.
-- Before writing any RocketRide code, follow `.claude/rules/rocketride.md` — read `.rocketride/docs/ROCKETRIDE_README.md`, the relevant API doc, `ROCKETRIDE_PIPELINE_RULES.md`, `ROCKETRIDE_COMPONENT_REFERENCE.md`, and `ROCKETRIDE_COMMON_MISTAKES.md`.
 - Don't invent the gas-oracle stack — `gas-oracle/AGENTS.md` warns Next.js 16 has breaking changes vs. training data; consult `node_modules/next/dist/docs/` before generating code.
 - Hackathon submission deliverables: GitHub repo (public), deployed demo URL, video presentation, slide deck, cover image. Plan the video early — winners always have a tight 2-min demo video.
