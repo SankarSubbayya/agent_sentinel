@@ -138,6 +138,48 @@ export async function getPolicies(): Promise<{ policies: PolicyDoc[] }> {
   return get<{ policies: PolicyDoc[] }>("/v1/policies");
 }
 
+// Agent runner — drive an LLM agent against a brief; every tool call
+// flows through the same gating pipeline as POST /v1/tools/call.
+export interface AgentStep {
+  step: number;
+  kind: "thought" | "tool_call" | "final";
+  thought?: string | null;
+  tool?: string | null;
+  args?: Record<string, unknown>;
+  decision?: Decision | null;
+  decided_by?: DecidedBy | null;
+  rationale?: string | null;
+  receipt_id?: string | null;
+  latency_ms?: number | null;
+  cost_usd?: number | null;
+  tool_result?: string | null;
+  final_message?: string | null;
+  escalated?: boolean;
+  policy_versions_used?: Array<{ name: string; version: string }>;
+}
+
+export interface AgentRunResponse {
+  agent_id: string;
+  session_id: string;
+  brief: string;
+  mode: "live" | "stub";
+  final_message: string | null;
+  total_cost_usd: number;
+  steps: AgentStep[];
+}
+
+export async function postAgentRun(
+  agent_id: string,
+  brief: string,
+  max_steps = 6
+): Promise<AgentRunResponse> {
+  return postJson<AgentRunResponse>("/v1/agents/run", {
+    agent_id,
+    brief,
+    max_steps,
+  });
+}
+
 export async function uploadPolicy(
   file: File
 ): Promise<{ ok: boolean; message?: string }> {

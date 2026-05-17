@@ -149,6 +149,40 @@ def _cmd_ledger_export(args: argparse.Namespace) -> int:
     return asyncio.run(_async_ledger_export(Path(args.out), args.limit))
 
 
+# ---- agent run
+
+async def _async_agent_run(agent_id: str, brief: str, max_steps: int) -> int:
+    from sentinel.agent_runner import AgentRunRequest, run_agent
+
+    result = await run_agent(
+        AgentRunRequest(agent_id=agent_id, brief=brief, max_steps=max_steps)
+    )
+    print(f"Agent: {result.agent_id}  session: {result.session_id}  mode: {result.mode}")
+    print(f"Brief: {result.brief}\n")
+    for s in result.steps:
+        if s.kind == "tool_call":
+            tag = (
+                "ALLOW" if s.decision == "allow"
+                else "DENY " if s.decision == "deny"
+                else "REWR "
+            )
+            print(
+                f"  [{s.step:>2}] {tag}  {s.tool:<24} "
+                f"by={s.decided_by:<6} {s.latency_ms}ms  ${s.cost_usd:.5f}"
+            )
+            print(f"        rationale: {(s.rationale or '')[:120]}")
+            if s.tool_result:
+                print(f"        result:    {s.tool_result[:120]}")
+        elif s.kind == "final":
+            print(f"\n  final: {s.final_message}")
+    print(f"\nTotal spend: ${result.total_cost_usd:.5f}")
+    return 0
+
+
+def _cmd_agent_run(args: argparse.Namespace) -> int:
+    return asyncio.run(_async_agent_run(args.agent_id, args.brief, args.max_steps))
+
+
 # ---- demo run
 
 async def _async_demo_run(sentinel_url: str) -> int:
@@ -209,7 +243,7 @@ def _build_parser() -> argparse.ArgumentParser:
     s = polsub.add_parser("list", help="list known policies")
     s.set_defaults(func=_cmd_policy_list)
 
-    ag = sub.add_parser("agent", help="agent registry")
+    ag = sub.add_parser("agent", help="agent registry + runner")
     agsub = ag.add_subparsers(dest="agent_cmd", required=True)
     s = agsub.add_parser("register", help="add/update an agent row")
     s.add_argument("agent_id")
@@ -218,6 +252,14 @@ def _build_parser() -> argparse.ArgumentParser:
     s.add_argument("--role", required=True)
     s.add_argument("--goal")
     s.set_defaults(func=_cmd_agent_register)
+    s = agsub.add_parser(
+        "run",
+        help="run an LLM agent against a brief; every tool call goes through Sentinel",
+    )
+    s.add_argument("agent_id", help="e.g. agent-sales-01 / agent-finance-01 / agent-ops-01")
+    s.add_argument("brief", help="natural-language task description for the agent")
+    s.add_argument("--max-steps", type=int, default=6)
+    s.set_defaults(func=_cmd_agent_run)
 
     s = sub.add_parser("ledger", help="audit ledger")
     sub2 = s.add_subparsers(dest="ledger_cmd", required=True)

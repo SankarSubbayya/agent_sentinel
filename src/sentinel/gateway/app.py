@@ -31,19 +31,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 
-from sentinel.audit import ReceiptInput, query_receipts, write_receipt
-from sentinel.audit.ledger import fetch_recent_for_agent, hash_args
+from dataclasses import asdict
+
+from sentinel.agent_runner import AgentRunRequest, run_agent
+from sentinel.audit import query_receipts
 from sentinel.config import get_settings
-from sentinel.cost import bu_rollup, compute_cost, write_cost_event
-from sentinel.db import get_session, init_schema
-from sentinel.gating import (
-    drift_signal,
-    evaluate_static,
-    flash_gate,
-    pro_escalation,
-)
-from sentinel.gating.static_engine import StaticVerdict
-from sentinel.models import AgentRecord, ToolCallRequest, ToolCallResponse
+from sentinel.cost import bu_rollup
+from sentinel.db import init_schema
+from sentinel.gateway.pipeline import gate_and_record, load_agent
+from sentinel.models import ToolCallRequest, ToolCallResponse
 from sentinel.policy_pipe import list_docs
 
 log = structlog.get_logger()
@@ -67,19 +63,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    async def _load_agent(agent_id: str) -> AgentRecord:
-        async with get_session() as s:
-            result = await s.execute(
-                text(
-                    "SELECT agent_id, name, bu, role, declared_goal "
-                    "FROM agents WHERE agent_id = :a"
-                ),
-                {"a": agent_id},
-            )
-            row = result.mappings().first()
-        if not row:
-            raise HTTPException(status_code=404, detail=f"Unknown agent_id '{agent_id}'")
-        return AgentRecord(**dict(row))
+    async def _load_agent_or_404(agent_id: str):
+        try:
+            return await load_agent(agent_id)
+        except LookupError as e:
+            raise HTTPException(status_code=404, detail=str(e))
 
     @app.get("/healthz")
     async def healthz() -> dict[str, Any]:
@@ -93,109 +81,36 @@ def create_app() -> FastAPI:
 
     @app.post("/v1/tools/call", response_model=ToolCallResponse)
     async def tools_call(call: ToolCallRequest) -> ToolCallResponse:
-        t0 = time.perf_counter()
-
         if not call.agent_id:
             raise HTTPException(400, "agent_id required (JWT auth not enabled in dev)")
-        agent = await _load_agent(call.agent_id)
+        agent = await _load_agent_or_404(call.agent_id)
+        result = await gate_and_record(call, agent)
+        return result.response
 
-        # ---- 1) Static engine
-        verdict: StaticVerdict = evaluate_static(call, agent)
-        decided_by: str = "static"
-        decision: str = verdict.decision  # "allow" | "deny" | "pass"
-        confidence: float | None = None
-        escalated = False
-        rationale = verdict.rationale
-        rewritten_args: dict[str, Any] | None = None
-        policy_versions: list[dict[str, str]] = []
-        cache_ids: list[str] = []
-
-        # Recent history feeds both the drift detector and Pro.
-        recent = await fetch_recent_for_agent(agent.agent_id, limit=20)
-
-        # ---- 2) Drift signal (always cheap)
-        drift_escalate, drift_reason = drift_signal(call, agent, recent)
-
-        # ---- 3) Flash gate if static didn't fire
-        if verdict.decision == "pass":
-            gd = await flash_gate(call, agent)
-            decided_by = "flash"
-            decision = gd.decision
-            confidence = gd.confidence
-            escalated = gd.escalate or drift_escalate
-            rationale = gd.rationale
-            rewritten_args = gd.rewritten_args
-
-            # ---- 4) Pro escalation when Flash flagged it, drift fired, or low conf
-            settings = get_settings()
-            need_pro = (
-                escalated
-                or (confidence is not None and confidence < settings.flash_escalate_threshold)
-            )
-            if need_pro:
-                pro_decision, pol_versions, cids = await pro_escalation(
-                    call, agent, recent, flash_decision=gd
-                )
-                decided_by = "pro"
-                decision = pro_decision.decision
-                confidence = pro_decision.confidence
-                rationale = pro_decision.rationale
-                rewritten_args = pro_decision.rewritten_args
-                policy_versions = pol_versions
-                cache_ids = cids
-                if drift_reason:
-                    rationale = f"[drift:{drift_reason}] {rationale}"
-
-        latency_ms = int((time.perf_counter() - t0) * 1000)
-
-        # ---- 5) Audit
-        receipt_id = await write_receipt(
-            ReceiptInput(
-                agent_id=agent.agent_id,
-                session_id=call.session_id,
-                tool=call.tool,
-                args_hash=hash_args(call.args),
-                decision=decision,  # type: ignore[arg-type]
-                decided_by=decided_by,  # type: ignore[arg-type]
-                confidence=confidence,
-                escalated=escalated,
-                rationale=rationale,
-                latency_ms=latency_ms,
-                policy_versions_used=policy_versions,
-                gemini_cache_ids=cache_ids,
-            )
+    @app.post("/v1/agents/run")
+    async def agents_run(req: dict[str, Any]) -> dict[str, Any]:
+        """Drive an LLM agent for a single brief. Every tool call flows
+        through the same gate_and_record pipeline as POST /v1/tools/call."""
+        agent_id = req.get("agent_id")
+        brief = req.get("brief")
+        max_steps = int(req.get("max_steps", 6))
+        if not agent_id or not brief:
+            raise HTTPException(400, "agent_id and brief are required")
+        # Validate the agent exists up front so a 404 is returned cleanly.
+        await _load_agent_or_404(agent_id)
+        result = await run_agent(
+            AgentRunRequest(agent_id=agent_id, brief=brief, max_steps=max_steps)
         )
-
-        # ---- 6) Cost
-        base, gemini, total = compute_cost(decided_by, escalated, decision)
-        await write_cost_event(
-            receipt_id=receipt_id,
-            bu=agent.bu,
-            tool=call.tool,
-            base_cost=base,
-            gemini_cost=gemini,
-            total_cost=total,
-        )
-
-        log.info(
-            "sentinel.decision",
-            agent=agent.agent_id,
-            tool=call.tool,
-            decision=decision,
-            decided_by=decided_by,
-            escalated=escalated,
-            latency_ms=latency_ms,
-            cost_usd=total,
-        )
-
-        return ToolCallResponse(
-            decision=decision,  # type: ignore[arg-type]
-            receipt_id=receipt_id,
-            rationale=rationale,
-            rewritten_args=rewritten_args,
-            cost_usd=total,
-            latency_ms=latency_ms,
-        )
+        # Dataclasses -> dicts for JSON response.
+        return {
+            "agent_id": result.agent_id,
+            "session_id": result.session_id,
+            "brief": result.brief,
+            "mode": result.mode,
+            "final_message": result.final_message,
+            "total_cost_usd": result.total_cost_usd,
+            "steps": [asdict(s) for s in result.steps],
+        }
 
     @app.get("/v1/receipts")
     async def get_receipts(

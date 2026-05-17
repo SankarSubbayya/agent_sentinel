@@ -9,6 +9,7 @@ import { SentinelMark } from "@/components/logo";
 
 const links = [
   { href: "/", label: "Activity" },
+  { href: "/agent", label: "Brief" },
   { href: "/receipts", label: "Receipts" },
   { href: "/cost", label: "Spend" },
   { href: "/redteam", label: "Red team" },
