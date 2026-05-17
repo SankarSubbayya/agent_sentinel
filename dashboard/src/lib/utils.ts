@@ -16,12 +16,23 @@ export function relativeTime(iso: string): string {
   return `${Math.floor(delta / 86400)}d ago`;
 }
 
+export function clockTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
 const BU_COLORS: Record<string, string> = {
-  sales: "bg-blue-500/20 text-blue-300 border-blue-500/40",
-  finance: "bg-purple-500/20 text-purple-300 border-purple-500/40",
-  ops: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-  customer: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-  default: "bg-zinc-500/20 text-zinc-300 border-zinc-500/40",
+  sales: "bg-sky-500/15 text-sky-300 border-sky-500/40",
+  finance: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/40",
+  ops: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+  customer: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+  default: "bg-zinc-500/15 text-zinc-300 border-zinc-500/40",
 };
 
 export function buColor(agentOrBu: string): string {
@@ -30,4 +41,20 @@ export function buColor(agentOrBu: string): string {
     if (key.includes(k)) return BU_COLORS[k];
   }
   return BU_COLORS.default;
+}
+
+// Compact agent ID — "agent-finance-01" -> "finance-01"
+export function compactAgent(id: string): string {
+  return id.replace(/^agent-/, "");
+}
+
+// Formats numbers like Linear: 12,345 with smart precision for tiny dollar amounts.
+export function fmtUsd(usd: number): string {
+  if (usd === 0) return "$0";
+  if (usd < 0.01) return `$${usd.toFixed(5)}`;
+  if (usd < 1) return `$${usd.toFixed(4)}`;
+  return `$${usd.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

@@ -1,100 +1,55 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { getPolicies, uploadPolicy, type PolicyDoc } from "@/lib/sentinelApi";
 
-// Placeholder rows until /v1/policies ships.
-const PLACEHOLDER: PolicyDoc[] = [
-  {
-    id: "data-handling-v3.2",
-    name: "Data Handling Policy",
-    version: "v3.2",
-    effective_date: "2025-09-01",
-    cache_id: "cachedContent/abc123",
-    domain_tags: ["PII", "retention"],
-  },
-  {
-    id: "pii-export-v1.0",
-    name: "PII Export Standard",
-    version: "v1.0",
-    effective_date: "2025-11-15",
-    cache_id: "cachedContent/def456",
-    domain_tags: ["PII", "export"],
-  },
-  {
-    id: "vendor-comm-v2.1",
-    name: "Vendor Communications Policy",
-    version: "v2.1",
-    effective_date: "2026-02-04",
-    cache_id: "cachedContent/ghi789",
-    domain_tags: ["vendor", "PII"],
-  },
-];
-
 export default function PoliciesPage() {
-  const [policies, setPolicies] = useState<PolicyDoc[]>(PLACEHOLDER);
-  const [usingPlaceholder, setUsingPlaceholder] = useState(true);
-  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [policies, setPolicies] = useState<PolicyDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploadMsg, setUploadMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  async function reload() {
+    setLoading(true);
+    try {
+      const res = await getPolicies();
+      setPolicies(res?.policies ?? []);
+    } catch {
+      setPolicies([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    getPolicies()
-      .then((res) => {
-        if (cancelled) return;
-        if (res?.policies?.length) {
-          setPolicies(res.policies);
-          setUsingPlaceholder(false);
-        }
-      })
-      .catch(() => {
-        // backend endpoint not implemented yet — keep placeholders.
-      });
-    return () => {
-      cancelled = true;
-    };
+    reload();
   }, []);
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    setUploadMsg("uploading...");
+    setUploadMsg({ ok: true, text: `uploading ${f.name}…` });
     const res = await uploadPolicy(f);
-    setUploadMsg(
-      res.ok
-        ? `uploaded ${f.name}${res.message ? ` — ${res.message}` : ""}`
-        : `failed: ${res.message ?? "unknown"}`
-    );
+    setUploadMsg({
+      ok: res.ok,
+      text: res.ok
+        ? `ingested ${f.name}${res.message ? ` · ${res.message}` : ""}`
+        : `failed: ${res.message ?? "unknown"}`,
+    });
     if (fileRef.current) fileRef.current.value = "";
+    if (res.ok) reload();
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            Policy library
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Long-context policy docs cached in Gemini Files API. Cited from
-            every Pro-tier decision.
-          </p>
+          <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            policy library · cached for Pro reasoning
+          </div>
+          <h1 className="mt-1 text-[22px] font-semibold leading-none">Policies</h1>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -104,68 +59,96 @@ export default function PoliciesPage() {
             onChange={onUpload}
             className="hidden"
           />
-          <Button onClick={() => fileRef.current?.click()}>
-            Upload policy
+          <Button
+            onClick={() => fileRef.current?.click()}
+            className="h-8 text-[12px]"
+          >
+            + Ingest policy PDF
           </Button>
         </div>
       </div>
 
-      {usingPlaceholder && (
-        <Card className="border-amber-500/40 bg-amber-500/5">
-          <CardContent className="pt-4 text-xs text-amber-300">
-            Showing placeholder rows — backend endpoint{" "}
-            <span className="mono">/v1/policies</span> not yet wired.
-          </CardContent>
-        </Card>
-      )}
-
       {uploadMsg && (
-        <Card>
-          <CardContent className="pt-4 text-xs mono">{uploadMsg}</CardContent>
-        </Card>
+        <div
+          className={cn(
+            "rounded-md border px-3 py-2 text-[12px] mono",
+            uploadMsg.ok
+              ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-300"
+              : "border-destructive/40 bg-destructive/5 text-destructive"
+          )}
+        >
+          {uploadMsg.text}
+        </div>
       )}
 
-      <Card>
-        <CardHeader className="border-b">
-          <CardTitle className="text-sm">Policies</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Version</TableHead>
-                <TableHead>Effective</TableHead>
-                <TableHead>Cache ID</TableHead>
-                <TableHead>Tags</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {policies.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="mono text-xs">{p.version}</TableCell>
-                  <TableCell className="mono text-xs">
-                    {p.effective_date}
-                  </TableCell>
-                  <TableCell className="mono text-xs text-muted-foreground">
-                    {p.cache_id || "—"}
-                  </TableCell>
-                  <TableCell>
+      <div className="panel">
+        <div className="panel-header">
+          <span className="font-medium text-foreground">Indexed policies</span>
+          <span className="text-muted-foreground/70">
+            {loading ? "loading…" : `${policies.length} active`}
+          </span>
+        </div>
+        <table className="w-full text-[12px]">
+          <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border/60 bg-card/40">
+              <th className="px-3 py-2 text-left font-medium">Name</th>
+              <th className="px-3 py-2 text-left font-medium">Version</th>
+              <th className="px-3 py-2 text-left font-medium">Effective</th>
+              <th className="px-3 py-2 text-left font-medium">Tags</th>
+              <th className="px-3 py-2 text-left font-medium">Cache</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/40">
+            {policies.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                  {loading ? (
+                    "loading…"
+                  ) : (
+                    <span>
+                      no policies ingested · run{" "}
+                      <code className="mono rounded-sm bg-muted/60 px-1.5 py-0.5">
+                        uv run sentinel policy upload demo_policies/*.pdf
+                      </code>
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ) : (
+              policies.map((p) => (
+                <tr key={p.id} className="hover:bg-muted/30">
+                  <td className="px-3 py-2 font-medium">{p.name}</td>
+                  <td className="px-3 py-2 mono text-muted-foreground">{p.version}</td>
+                  <td className="px-3 py-2 mono text-[11px] text-muted-foreground">
+                    {p.effective_date ?? "—"}
+                  </td>
+                  <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
                       {(p.domain_tags ?? []).map((t) => (
-                        <Badge key={t} variant="secondary" className="text-xs">
+                        <span
+                          key={t}
+                          className="rounded-sm border border-border/60 bg-card/60 px-1.5 mono text-[10px]"
+                        >
                           {t}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </td>
+                  <td className="px-3 py-2 mono text-[11px] text-muted-foreground">
+                    {p.cache_id ? (
+                      <span title={p.cache_id}>
+                        {p.cache_id.replace(/^cachedContents\//, "")}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
