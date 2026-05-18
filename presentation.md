@@ -624,30 +624,39 @@ specific receipt fields that satisfy their requirement. This is the
 
 ---
 
-## Roadmap · Phase 2
+## Phase 2 · shipped tonight
 
 <div class="cards" style="grid-template-columns: repeat(2, 1fr);">
 <div class="card">
-<h4>Native framework adapters</h4>
-<p>LangGraph · CrewAI · Anthropic Agent SDK · Google ADK. Today: any MCP-speaking agent. Tomorrow: zero-config for the top four agent frameworks.</p>
+<h4>Native adapter: <strong>Google ADK</strong> (flagship)</h4>
+<p>Three-line wrap of any ADK <code>FunctionTool</code> or whole <code>Agent</code>. Every tool the agent invokes is gated, audited, costed. Plus Anthropic Agent SDK, OpenAI tool-calling, CrewAI, generic MCP.</p>
 </div>
 <div class="card">
-<h4>Multi-region replicated ledger</h4>
-<p>Document HA path now; ship replicated Postgres + read replicas. Demo is single-region single-instance by design.</p>
+<h4>Customer KMS · rotated keys</h4>
+<p>Per-receipt <code>key_id</code>; verifier supports historical keys. Rotate via env: add a new key to <code>SENTINEL_SIGNING_KEYS</code>, bump <code>SENTINEL_ACTIVE_KEY_ID</code>, restart. Old receipts continue to verify.</p>
 </div>
 <div class="card">
-<h4>Customer-managed keys (KMS)</h4>
-<p>Receipts signed today with a Sentinel-controlled HMAC key. Phase 2: customer KMS-rotated keys for FedRAMP / SOC 2 paths.</p>
+<h4>On-chain receipt anchoring</h4>
+<p>SHA-256 Merkle root over unanchored receipts → <code>anchor_batches</code> table. Targets: local file, OpenTimestamps, Circle Arc state channel. <strong>Connects to our Arc/Circle nanopayment work</strong>.</p>
 </div>
 <div class="card">
-<h4>On-chain receipt anchoring (optional)</h4>
-<p>Hash the receipt-chain root, anchor it on Circle Arc / Ethereum. <strong>Builds on our Arc/Circle nanopayment work</strong> (<em>ARC_DataPiper, Midstream</em>).</p>
+<h4>Slack / Teams alerts · observe mode · policy authoring</h4>
+<p>Webhook alerts on every deny + rewrite. <code>POST /v1/observe</code> for read-only deployments. <code>POST /v1/policies/text</code> for inline policy authoring. Multi-policy conflict detection on Pro escalations.</p>
 </div>
 </div>
 
-<p class="small center" style="margin-top:18px;">
-Plus: policy authoring UI · Slack/Teams compliance queries · multi-policy conflict detection.
-</p>
+<div class="metric-cards" style="grid-template-columns: repeat(4, 1fr); margin-top: 18px;">
+<div class="metric-card">
+<div class="metric-value">82</div>
+<div class="metric-label">PYTESTS PASSING</div>
+<p>63 unit + 19 integration. Covers static engine, drift, KMS, alerts, Merkle, adapters, gateway, eval, ledger verify with tamper-detect roundtrip.</p>
+</div>
+<div class="metric-card">
+<div class="metric-value">PASS</div>
+<div class="metric-label">CHAIN INTEGRITY</div>
+<p>Per-agent advisory lock serializes writes under concurrency. 163-receipt ledger verified end-to-end with <code>sentinel ledger verify</code>.</p>
+</div>
+</div>
 
 <!--
 SPEAKER NOTES — Slide 9 (~20s)

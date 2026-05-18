@@ -27,6 +27,7 @@ from sqlalchemy import text
 from sentinel.audit.ledger import sha256_hex
 from sentinel.config import get_settings
 from sentinel.db import get_session
+from sentinel.kms import get_keyset
 
 
 # ---- Report shape ----
@@ -93,6 +94,12 @@ def _compute_signature(self_hash: str, signing_key: str) -> str:
     ).hexdigest()
 
 
+def _resolve_signing_key(row: dict[str, Any], legacy_key: str) -> str:
+    """Look up the row's key_id in the keyset; fall back to legacy single-key."""
+    key_id = row.get("key_id") or "k1"
+    return get_keyset().get(key_id) or legacy_key
+
+
 def verify_one(row: dict[str, Any], signing_key: str) -> ReceiptVerdict:
     """Verify a single receipt record in isolation (self_hash + signature).
     Chain-link verification is done at the chain level, not here."""
@@ -105,10 +112,14 @@ def verify_one(row: dict[str, Any], signing_key: str) -> ReceiptVerdict:
             f"stored {str(row['self_hash'])[:16]}…"
         )
 
-    expected_sig = _compute_signature(row["self_hash"], signing_key)
+    # Resolve the right key for this receipt — supports rotated keys.
+    actual_key = _resolve_signing_key(row, signing_key)
+    expected_sig = _compute_signature(row["self_hash"], actual_key)
     signature_ok = expected_sig == row["signature"]
     if not signature_ok:
-        issues.append("signature mismatch — HMAC over self_hash does not match")
+        issues.append(
+            f"signature mismatch — HMAC under key_id={row.get('key_id') or 'k1'} does not match"
+        )
 
     return ReceiptVerdict(
         receipt_id=str(row["receipt_id"]),
@@ -127,7 +138,7 @@ def verify_one(row: dict[str, Any], signing_key: str) -> ReceiptVerdict:
 _RECEIPT_COLS = (
     "receipt_id, agent_id, session_id, tool, args_hash, decision, decided_by, "
     "rationale, policy_versions_used, gemini_cache_ids, prev_hash, self_hash, "
-    "signature, created_at"
+    "signature, created_at, key_id"
 )
 
 

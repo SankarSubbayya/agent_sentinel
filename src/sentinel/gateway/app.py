@@ -87,6 +87,170 @@ def create_app() -> FastAPI:
         result = await gate_and_record(call, agent)
         return result.response
 
+    @app.post("/v1/observe")
+    async def observe(call: ToolCallRequest) -> dict[str, Any]:
+        """AuditLens / observe-only mode — record the call as a receipt
+        marked `observed_only=true` WITHOUT gating it. The agent's action
+        is allowed to proceed unaltered; Sentinel becomes a passive
+        observer. Useful for organizations migrating from 'log everything'
+        toward inline enforcement."""
+        from sentinel.audit import ReceiptInput, write_receipt
+        from sentinel.audit.ledger import hash_args
+        if not call.agent_id:
+            raise HTTPException(400, "agent_id required")
+        agent = await _load_agent_or_404(call.agent_id)
+        receipt_id = await write_receipt(
+            ReceiptInput(
+                agent_id=agent.agent_id,
+                session_id=call.session_id,
+                tool=call.tool,
+                args_hash=hash_args(call.args),
+                decision="allow",  # observe mode is always pass-through
+                decided_by="static",
+                confidence=None,
+                escalated=False,
+                rationale="observed-only mode — no gating applied",
+                latency_ms=0,
+                observed_only=True,
+            )
+        )
+        return {"receipt_id": str(receipt_id), "mode": "observe"}
+
+    @app.post("/v1/policies/text")
+    async def upload_policy_text(payload: dict[str, Any]) -> dict[str, Any]:
+        """Author a policy as raw text (no PDF). Lower-cost path to ingest
+        policy content from the dashboard or a CMS. PolicyPipe still stamps
+        the cache_id when a Gemini key is configured; otherwise the policy
+        is registered in the catalog and Pro reasons over its inline summary."""
+        from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+
+        from sqlalchemy import text as _text
+
+        from sentinel.db import get_session as _gs
+
+        name = (payload.get("name") or "").strip()
+        version = (payload.get("version") or "").strip()
+        body = (payload.get("body") or "").strip()
+        domain_tags = payload.get("domain_tags") or []
+        if not name or not version or not body:
+            raise HTTPException(400, "name, version, and body are required")
+
+        # Reuse the catalog upsert path.
+        from hashlib import sha256
+        sha = sha256(body.encode("utf-8")).hexdigest()
+        async with _gs() as s:
+            row = (await s.execute(
+                _text(
+                    """
+                    INSERT INTO policy_docs
+                      (name, version, domain_tags, summary, source_sha256, source_text)
+                    VALUES (:n, :v, :tags, :sum, :sha, :body)
+                    ON CONFLICT (name, version) DO UPDATE SET
+                      domain_tags  = EXCLUDED.domain_tags,
+                      summary      = EXCLUDED.summary,
+                      source_text  = EXCLUDED.source_text,
+                      source_sha256 = EXCLUDED.source_sha256
+                    RETURNING id
+                    """
+                ),
+                {"n": name, "v": version, "tags": domain_tags,
+                 "sum": body[:400], "sha": sha, "body": body},
+            )).first()
+            await s.commit()
+
+        return {
+            "id": str(row[0]),
+            "name": name,
+            "version": version,
+            "domain_tags": domain_tags,
+        }
+
+    @app.post("/v1/ledger/verify")
+    async def ledger_verify(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        """HTTP-callable version of `sentinel ledger verify`. Runs the
+        hash-chain + signature check in the gateway's event loop and
+        returns a JSON report. Used by the integration test suite
+        (which can't easily share asyncpg connections across pytest
+        event loops) and by any external auditor with HTTP access."""
+        from dataclasses import asdict
+        from sentinel.audit.verify import verify
+        agent = (payload or {}).get("agent_id")
+        report = await verify(source="db", agent_id=agent)
+        return {
+            "total": report.total,
+            "verified": report.verified,
+            "all_ok": report.all_ok,
+            "chains": report.chains,
+            "tampered": [asdict(v) for v in report.tampered],
+        }
+
+    @app.post("/v1/_test/truncate")
+    async def _test_truncate() -> dict[str, Any]:
+        """Test-only: wipe audit tables for deterministic integration runs.
+        Returns row counts before truncation. Gated by SENTINEL_ENV != 'prod'."""
+        import os
+        if os.environ.get("SENTINEL_ENV", "dev").lower() == "prod":
+            raise HTTPException(403, "truncate disabled in production")
+        from sqlalchemy import text as _text
+        from sentinel.db import get_session as _gs
+        async with _gs() as s:
+            counts = {}
+            for t in ("audit_receipts", "cost_events", "alert_events", "anchor_batches"):
+                row = (await s.execute(_text(f"SELECT count(*) FROM {t}"))).scalar()
+                counts[t] = int(row or 0)
+            await s.execute(_text(
+                "TRUNCATE alert_events, anchor_batches, cost_events, "
+                "audit_receipts RESTART IDENTITY CASCADE"
+            ))
+            await s.commit()
+        return {"before": counts, "truncated": True}
+
+    @app.post("/v1/_test/tamper")
+    async def _test_tamper(payload: dict[str, Any]) -> dict[str, Any]:
+        """Test-only: mutate the rationale of a specific receipt and return
+        the original so the test can restore. Gated by SENTINEL_ENV != 'prod'."""
+        import os
+        if os.environ.get("SENTINEL_ENV", "dev").lower() == "prod":
+            raise HTTPException(403, "tamper disabled in production")
+        receipt_id = payload.get("receipt_id")
+        new_rationale = payload.get("rationale", "[tampered]")
+        if not receipt_id:
+            raise HTTPException(400, "receipt_id required")
+        from sqlalchemy import text as _text
+        from sentinel.db import get_session as _gs
+        async with _gs() as s:
+            row = (await s.execute(
+                _text("SELECT rationale FROM audit_receipts WHERE receipt_id = :r"),
+                {"r": receipt_id},
+            )).first()
+            if not row:
+                raise HTTPException(404, f"receipt {receipt_id} not found")
+            original = row[0]
+            await s.execute(
+                _text("UPDATE audit_receipts SET rationale = :v WHERE receipt_id = :r"),
+                {"v": new_rationale, "r": receipt_id},
+            )
+            await s.commit()
+        return {"receipt_id": receipt_id, "original_rationale": original}
+
+    @app.get("/v1/anchors")
+    async def list_anchor_batches(limit: int = Query(default=50, le=200)) -> dict[str, Any]:
+        from sentinel.anchoring import list_anchors
+        return {"anchors": await list_anchors(limit=limit)}
+
+    @app.post("/v1/anchors/run")
+    async def run_anchor(payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        from sentinel.anchoring import anchor_pending
+        target = (payload or {}).get("target", "local")
+        result = await anchor_pending(target=target)
+        return {
+            "batch_id": str(result.batch_id),
+            "merkle_root": result.merkle_root,
+            "receipt_count": result.receipt_count,
+            "anchor_target": result.anchor_target,
+            "anchor_pointer": result.anchor_pointer,
+        }
+
     @app.post("/v1/agents/run")
     async def agents_run(req: dict[str, Any]) -> dict[str, Any]:
         """Drive an LLM agent for a single brief. Every tool call flows

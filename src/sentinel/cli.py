@@ -149,6 +149,25 @@ def _cmd_ledger_export(args: argparse.Namespace) -> int:
     return asyncio.run(_async_ledger_export(Path(args.out), args.limit))
 
 
+# ---- ledger anchor
+
+async def _async_ledger_anchor(target: str) -> int:
+    from sentinel.anchoring import anchor_pending
+
+    result = await anchor_pending(target=target)  # type: ignore[arg-type]
+    print(f"Anchor batch  {result.batch_id}")
+    print(f"  merkle_root  {result.merkle_root}")
+    print(f"  receipts     {result.receipt_count}")
+    print(f"  range        {result.range_start_ts} .. {result.range_end_ts}")
+    print(f"  target       {result.anchor_target}")
+    print(f"  pointer      {result.anchor_pointer}")
+    return 0
+
+
+def _cmd_ledger_anchor(args: argparse.Namespace) -> int:
+    return asyncio.run(_async_ledger_anchor(args.target))
+
+
 # ---- ledger verify
 
 async def _async_ledger_verify(
@@ -372,6 +391,12 @@ def _build_parser() -> argparse.ArgumentParser:
     e.add_argument("--out", default="receipts.jsonl")
     e.add_argument("--limit", type=int, default=10_000)
     e.set_defaults(func=_cmd_ledger_export)
+    a = sub2.add_parser(
+        "anchor",
+        help="compute Merkle root over unanchored receipts + emit anchor batch",
+    )
+    a.add_argument("--target", choices=["local", "opentimestamps", "arc"], default="local")
+    a.set_defaults(func=_cmd_ledger_anchor)
     v = sub2.add_parser(
         "verify",
         help="walk the hash chain, re-derive HMAC signatures, report tamper",

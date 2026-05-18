@@ -53,11 +53,12 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 
 
 async def init_schema() -> None:
-    """Run sql/001_init.sql against the configured database. Idempotent."""
+    """Apply all sql/*.sql migrations in order. Each is idempotent — safe
+    to re-run on startup. New migrations should be added as new files."""
     engine = get_engine()
-    schema_path = Path(__file__).resolve().parents[3] / "sql" / "001_init.sql"
-    sql = schema_path.read_text()
+    sql_dir = Path(__file__).resolve().parents[3] / "sql"
+    files = sorted(p for p in sql_dir.glob("*.sql"))
     async with engine.begin() as conn:
-        # asyncpg needs statements split — execute as one script via raw connection.
         raw = await conn.get_raw_connection()
-        await raw.driver_connection.execute(sql)
+        for path in files:
+            await raw.driver_connection.execute(path.read_text())

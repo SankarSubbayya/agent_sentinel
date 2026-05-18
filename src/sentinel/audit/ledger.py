@@ -17,6 +17,7 @@ from sqlalchemy import text
 
 from sentinel.config import get_settings
 from sentinel.db import get_session
+from sentinel.kms import get_keyset
 
 
 def sha256_hex(value: str | bytes) -> str:
@@ -30,9 +31,20 @@ def hash_args(args: dict[str, Any]) -> str:
     return sha256_hex(json.dumps(args, sort_keys=True, default=str))
 
 
-def _hmac_sign(payload: str) -> str:
-    key = get_settings().sentinel_jwt_signing_key.encode("utf-8")
-    return hmac.new(key, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+def _hmac_sign(payload: str, key_id: str | None = None) -> tuple[str, str]:
+    """Sign with either the active key (default) or a specific key_id (for
+    re-deriving signatures during verification). Returns (key_id, sig_hex)."""
+    keyset = get_keyset()
+    if key_id is None:
+        kid, key = keyset.active()
+    else:
+        key = keyset.get(key_id) or ""
+        kid = key_id
+    if not key:
+        # Backstop for the unconfigured-env case (development only).
+        key = get_settings().sentinel_jwt_signing_key or "dev-unsafe-key"
+    sig = hmac.new(key.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return kid, sig
 
 
 @dataclass(slots=True)
@@ -50,6 +62,8 @@ class ReceiptInput:
     policy_versions_used: list[dict[str, str]] = field(default_factory=list)
     gemini_cache_ids: list[str] = field(default_factory=list)
     gemini_trace_id: str | None = None
+    observed_only: bool = False
+    policy_conflict: bool = False
 
 
 async def _prev_hash_for_agent(agent_id: str) -> str | None:
@@ -65,6 +79,23 @@ async def _prev_hash_for_agent(agent_id: str) -> str | None:
             )
         ).first()
         return row[0] if row else None
+
+
+async def _prev_hash_for_agent_in_session(s, agent_id: str) -> str | None:
+    """Variant of _prev_hash_for_agent that runs inside the caller's open
+    session — required when we hold a per-agent advisory lock and need the
+    read + write to share a transaction."""
+    row = (
+        await s.execute(
+            text(
+                "SELECT self_hash FROM audit_receipts "
+                "WHERE agent_id = :a "
+                "ORDER BY created_at DESC LIMIT 1"
+            ),
+            {"a": agent_id},
+        )
+    ).first()
+    return row[0] if row else None
 
 
 def _compute_self_hash(
@@ -90,14 +121,27 @@ def _compute_self_hash(
 
 
 async def write_receipt(inp: ReceiptInput) -> UUID:
-    """Insert a new receipt; return its receipt_id. Hash-chain is per-agent."""
+    """Insert a new receipt; return its receipt_id. Hash-chain is per-agent.
+
+    A Postgres advisory lock keyed on agent_id serializes concurrent writes
+    for the same agent so the prev_hash → self_hash chain stays well-defined
+    under load. Different agents continue to write in parallel; only same-
+    agent writes block."""
     receipt_id = uuid4()
-    prev_hash = await _prev_hash_for_agent(inp.agent_id)
-    self_hash = _compute_self_hash(receipt_id, prev_hash, inp)
-    signature = _hmac_sign(self_hash)
     rationale_hash = sha256_hex(inp.rationale)
 
     async with get_session() as s:
+        # Per-agent advisory lock held for the duration of the transaction.
+        # hashtext() bucketizes the string into a 32-bit signed int that
+        # pg_advisory_xact_lock accepts.
+        await s.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:a))"),
+            {"a": inp.agent_id},
+        )
+        prev_hash = await _prev_hash_for_agent_in_session(s, inp.agent_id)
+        self_hash = _compute_self_hash(receipt_id, prev_hash, inp)
+        key_id, signature = _hmac_sign(self_hash)
+
         await s.execute(
             text(
                 """
@@ -106,13 +150,15 @@ async def write_receipt(inp: ReceiptInput) -> UUID:
                     decision, decided_by, confidence, escalated,
                     rationale, rationale_hash,
                     policy_versions_used, gemini_cache_ids, gemini_trace_id,
-                    prev_hash, self_hash, signature, latency_ms
+                    prev_hash, self_hash, signature, latency_ms,
+                    key_id, observed_only, policy_conflict
                 ) VALUES (
                     :receipt_id, :agent_id, :session_id, :tool, :args_hash,
                     :decision, :decided_by, :confidence, :escalated,
                     :rationale, :rationale_hash,
                     CAST(:policies AS JSONB), :caches, :trace_id,
-                    :prev_hash, :self_hash, :signature, :latency_ms
+                    :prev_hash, :self_hash, :signature, :latency_ms,
+                    :key_id, :observed_only, :policy_conflict
                 )
                 """
             ),
@@ -135,6 +181,9 @@ async def write_receipt(inp: ReceiptInput) -> UUID:
                 "self_hash": self_hash,
                 "signature": signature,
                 "latency_ms": inp.latency_ms,
+                "key_id": key_id,
+                "observed_only": inp.observed_only,
+                "policy_conflict": inp.policy_conflict,
             },
         )
         await s.commit()

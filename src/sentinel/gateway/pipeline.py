@@ -103,6 +103,9 @@ async def gate_and_record(call: ToolCallRequest, agent: AgentRecord) -> GatingRe
     latency_ms = int((time.perf_counter() - t0) * 1000)
 
     # 5) Audit
+    # Multi-policy conflict detection — Pro received >1 policy cache.
+    policy_conflict = len(policy_versions) > 1 and decided_by == "pro"
+
     receipt_id = await write_receipt(
         ReceiptInput(
             agent_id=agent.agent_id,
@@ -117,6 +120,7 @@ async def gate_and_record(call: ToolCallRequest, agent: AgentRecord) -> GatingRe
             latency_ms=latency_ms,
             policy_versions_used=policy_versions,
             gemini_cache_ids=cache_ids,
+            policy_conflict=policy_conflict,
         )
     )
 
@@ -141,6 +145,21 @@ async def gate_and_record(call: ToolCallRequest, agent: AgentRecord) -> GatingRe
         latency_ms=latency_ms,
         cost_usd=total,
     )
+
+    # 7) Fire-and-forget alerts. Never blocks the response.
+    try:
+        from sentinel.alerts import maybe_alert  # local import keeps cold-start fast
+        await maybe_alert(
+            receipt_id=receipt_id,
+            agent_id=agent.agent_id,
+            bu=agent.bu,
+            tool=call.tool,
+            decision=decision,
+            rationale=rationale,
+            decided_by=decided_by,
+        )
+    except Exception as e:
+        log.warning("sentinel.alert_failed", error=str(e))
 
     return GatingResult(
         response=ToolCallResponse(
