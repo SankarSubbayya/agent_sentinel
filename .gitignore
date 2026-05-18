@@ -33,3 +33,5 @@ receipts.jsonl
 /presentation.html
 /sentinel.pdf
 /sentinel.pptx
+.vercel
+.env*.local
