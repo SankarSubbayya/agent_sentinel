@@ -6,9 +6,11 @@ later row. The signature is HMAC-SHA256 with the Sentinel signing key —
 verifiable by an external auditor given the key."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import UUID, uuid4
@@ -18,6 +20,16 @@ from sqlalchemy import text
 from sentinel.config import get_settings
 from sentinel.db import get_session
 from sentinel.kms import get_keyset
+
+
+# Per-agent asyncio locks. Within one gateway process, this gives us a
+# hard serialization guarantee for same-agent writes — preventing the
+# read-prev-hash → compute-self-hash → INSERT race even if the Postgres
+# advisory lock has edge cases under load. Multi-process deployments
+# still rely on the advisory lock (different gateway instances can't
+# share a Python lock object), but for the hackathon-shape single-process
+# demo this is sufficient.
+_agent_write_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
 def sha256_hex(value: str | bytes) -> str:
@@ -130,19 +142,22 @@ async def write_receipt(inp: ReceiptInput) -> UUID:
     receipt_id = uuid4()
     rationale_hash = sha256_hex(inp.rationale)
 
-    async with get_session() as s:
-        # Per-agent advisory lock held for the duration of the transaction.
-        # hashtext() bucketizes the string into a 32-bit signed int that
-        # pg_advisory_xact_lock accepts.
-        await s.execute(
-            text("SELECT pg_advisory_xact_lock(hashtext(:a))"),
-            {"a": inp.agent_id},
-        )
-        prev_hash = await _prev_hash_for_agent_in_session(s, inp.agent_id)
-        self_hash = _compute_self_hash(receipt_id, prev_hash, inp)
-        key_id, signature = _hmac_sign(self_hash)
+    # In-process serialization for same-agent writes. Combined with the
+    # Postgres advisory lock below this gives us defense in depth.
+    async with _agent_write_locks[inp.agent_id]:
+      async with get_session() as s:
+        # Wrap the entire write in an EXPLICIT transaction so the
+        # pg_advisory_xact_lock has a transaction to scope to.
+        async with s.begin():
+            await s.execute(
+                text("SELECT pg_advisory_xact_lock(hashtext(:a))"),
+                {"a": inp.agent_id},
+            )
+            prev_hash = await _prev_hash_for_agent_in_session(s, inp.agent_id)
+            self_hash = _compute_self_hash(receipt_id, prev_hash, inp)
+            key_id, signature = _hmac_sign(self_hash)
 
-        await s.execute(
+            await s.execute(
             text(
                 """
                 INSERT INTO audit_receipts (
@@ -185,8 +200,8 @@ async def write_receipt(inp: ReceiptInput) -> UUID:
                 "observed_only": inp.observed_only,
                 "policy_conflict": inp.policy_conflict,
             },
-        )
-        await s.commit()
+            )
+        # s.begin() context manager commits on clean exit.
     return receipt_id
 
 

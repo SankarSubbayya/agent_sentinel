@@ -186,7 +186,10 @@ async def verify(
 
     signing_key = get_settings().sentinel_jwt_signing_key
 
-    # Group by agent so we can verify the per-agent hash chain.
+    # Group by agent and walk each chain via prev_hash → self_hash links
+    # rather than trusting timestamp order (Postgres `now()` shares a value
+    # within a transaction, so multiple same-tx-time receipts can tie on
+    # created_at and mislead a timestamp-based ordering).
     by_agent: dict[str, list[dict[str, Any]]] = {}
     for r in rows:
         by_agent.setdefault(r["agent_id"], []).append(r)
@@ -195,28 +198,90 @@ async def verify(
     chains: dict[str, dict[str, Any]] = {}
     verified = 0
 
-    for aid, chain in by_agent.items():
-        prev_hash: str | None = None
+    for aid, receipts in by_agent.items():
+        # Build a self_hash → row map and a prev_hash → row map so we can
+        # detect forks (two receipts pointing back to the same parent).
+        by_self: dict[str, dict[str, Any]] = {}
+        by_prev: dict[str | None, list[dict[str, Any]]] = {}
+        for r in receipts:
+            by_self[r["self_hash"]] = r
+            by_prev.setdefault(r.get("prev_hash"), []).append(r)
+
+        # Find the root: prev_hash is NULL (or missing).
+        roots = by_prev.get(None, []) + by_prev.get("", [])
+
+        ordered: list[dict[str, Any]] = []
         chain_ok = True
-        for row in chain:
+        chain_issues: list[str] = []
+
+        if len(roots) > 1:
+            chain_ok = False
+            chain_issues.append(
+                f"multiple chain roots ({len(roots)}) — fork detected before any receipt"
+            )
+            # Process them all in arrival order so the user sees each as tampered.
+            ordered = list(receipts)
+        elif not roots:
+            chain_ok = False
+            chain_issues.append("no chain root (no receipt with prev_hash IS NULL)")
+            ordered = list(receipts)
+        else:
+            cur = roots[0]
+            seen: set[str] = set()
+            while cur is not None:
+                if cur["self_hash"] in seen:
+                    chain_ok = False
+                    chain_issues.append(f"cycle detected at {cur['self_hash'][:16]}…")
+                    break
+                seen.add(cur["self_hash"])
+                ordered.append(cur)
+                # If multiple receipts list the same prev_hash, we have a fork.
+                children = by_prev.get(cur["self_hash"], [])
+                if len(children) > 1:
+                    chain_ok = False
+                    chain_issues.append(
+                        f"fork at {cur['self_hash'][:16]}… — {len(children)} children"
+                    )
+                    # Continue with one child to surface the rest as siblings.
+                    cur = children[0]
+                elif len(children) == 1:
+                    cur = children[0]
+                else:
+                    cur = None
+            # Any receipt not reached via the walk is dangling.
+            dangling = [r for r in receipts if r["self_hash"] not in seen]
+            if dangling:
+                chain_ok = False
+                chain_issues.append(
+                    f"{len(dangling)} receipt(s) not reachable from chain root"
+                )
+                ordered.extend(dangling)
+
+        prev_self: str | None = None
+        for row in ordered:
             verdict = verify_one(row, signing_key)
-            expected_prev = row["prev_hash"]
-            if expected_prev != prev_hash:
+            expected_prev = row.get("prev_hash")
+            # Normalize NULL/empty to the same sentinel.
+            actual_prev = expected_prev or None
+            if actual_prev != prev_self:
                 verdict.chain_link_ok = False
                 verdict.issues.append(
-                    f"prev_hash mismatch — expected {(prev_hash or '∅')[:16]}…, "
-                    f"got {(expected_prev or '∅')[:16]}…"
+                    f"prev_hash mismatch — expected {(prev_self or '∅')[:16]}…, "
+                    f"got {(actual_prev or '∅')[:16]}…"
                 )
             if verdict.ok:
                 verified += 1
             else:
                 tampered.append(verdict)
-                chain_ok = False
-            prev_hash = row["self_hash"]
+            prev_self = row["self_hash"]
+
         chains[aid] = {
-            "count": len(chain),
-            "ok": chain_ok,
-            "tail_self_hash": chain[-1]["self_hash"] if chain else None,
+            "count": len(receipts),
+            "ok": chain_ok and not any(
+                not v.chain_link_ok for v in tampered if v.agent_id == aid
+            ),
+            "tail_self_hash": ordered[-1]["self_hash"] if ordered else None,
+            "issues": chain_issues,
         }
 
     return VerifyReport(
