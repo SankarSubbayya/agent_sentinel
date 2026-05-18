@@ -63,8 +63,10 @@ Set environment variables on the **gateway** service:
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
 | `SENTINEL_JWT_SIGNING_KEY` | Generate fresh: `python -c "import secrets; print(secrets.token_hex(32))"` |
 | `SENTINEL_HOST` | `0.0.0.0` |
-| `SENTINEL_ENV` | `prod` (disables the `/v1/_test/*` endpoints) |
-| `GEMINI_API_KEY` | **(leave empty for safe stub mode on the public URL)** OR set your real key if you want live model calls in the demo |
+| `SENTINEL_ENV` | `prod` (disables `/v1/_test/*` endpoints AND enables the per-IP rate limiter) |
+| `GEMINI_API_KEY` | **Your real key.** Public demo runs on real Gemini. Per-IP rate limit (30/min, 500/day) caps abuse — worst case ~$0.50/IP/day. |
+| `SENTINEL_RATE_LIMIT_PER_MIN` | `30` (default; lower this for tighter spend control) |
+| `SENTINEL_RATE_LIMIT_PER_DAY` | `500` (default; per-IP daily ceiling on Gemini-spending calls) |
 
 Trigger the first deploy:
 
