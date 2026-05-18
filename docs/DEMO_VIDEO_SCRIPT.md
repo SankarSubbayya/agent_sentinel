@@ -26,11 +26,11 @@
 
 > "This is the live operator dashboard.
 >
-> Top-left: 500 decisions in the recent window. We load-tested this at 800 requests per second — over five thousand decisions in the ledger right now. Deny rate around 3 percent, p95 latency under 2 milliseconds.
+> Top-left: 500 decisions in the recent window. We have over five thousand decisions in the ledger right now — load tested at 800 requests per second. Deny rate around 3 percent. Every receipt is hash-chained and HMAC-signed.
 >
-> Every row is a single tool call from one of three demo agents. The color badge is the decision — green allow, red deny, amber rewrite. The pill next to it tells you which tier of the gating pipeline decided: static engine for the cheap cases, Flash for most, Pro for the ambiguous five percent.
+> Each row is a single tool call from one of three demo agents. The colored badge is the decision — green allow, red deny, amber rewrite. The pill next to it tells you which tier of the gating pipeline decided: static engine for cheap cases, Gemini Flash for most, Gemini Pro for the ambiguous twenty percent.
 >
-> The rationale on the right comes straight from Gemini."
+> The rationale on the right is Gemini-authored — real model output, not a template."
 
 `[Scroll through the timeline once so the camera sees variety]`
 
@@ -48,9 +48,9 @@
 >
 > Watch what Sentinel does."
 
-`[Click Send tool call. Pause 2 seconds while it processes.]`
+`[Click Send tool call. Pause ~5 seconds while it processes — that's real Gemini Flash + Pro latency.]`
 
-> "Denied. Sub-100ms. The rationale cites the drift detector — quote, 'injection markers in args' — and the Pro escalation upheld the deny.
+> "Denied. The rationale cites the drift detector — quote, 'injection markers in args' — and the Pro escalation upheld the deny against the Refund Authority Policy.
 >
 > Underneath, we wrote a receipt: hash-chained, HMAC-signed, citing the policy version we used. It's tamper-evident *without a blockchain*."
 
@@ -100,15 +100,15 @@
 
 > "Before I close — the tamper-evident claim.
 >
-> 5,163 receipts. Three agent chains. The verifier walks every prev-hash → self-hash link, re-derives the HMAC signature with the signing key, and reports."
+> Five thousand receipts. Three agent chains. The verifier walks every prev-hash to self-hash link, re-derives the HMAC signature with the signing key, and reports."
 
 `[Wait for output: INTEGRITY: PASS]`
 
-> "Pass. Mutate one byte of any rationale and this exits non-zero with the specific row. We've tested it.
+> "Pass. Mutate one byte of any rationale and this exits non-zero with the specific row.
 >
-> Eighty-eight pytests. One-fifty-five labeled eval cases. Google ADK adapter, A2A peer card, Cached Content for long-context Pro reasoning. Built end-to-end on the Google stack.
+> Eighty-eight pytests. One-fifty-five labeled eval cases. Real-Gemini eval at ninety-six-point-eight percent. Google ADK adapter. A2A peer card at dot-well-known-slash-agent-dot-json. Three policies ingested through the Files API.
 >
-> Sentinel. Cloudflare for AI agents — built on Gemini."
+> Sentinel. Cloudflare for AI agents — built end-to-end on Gemini."
 
 `[CUT]`
 

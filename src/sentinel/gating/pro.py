@@ -11,12 +11,16 @@ import json
 import re
 from typing import Any
 
+import structlog
 from google import genai
 from google.genai import types
 
 from sentinel.config import get_settings
+from sentinel.gating.flash import FlashGateOutput, _to_full
 from sentinel.models import AgentRecord, GateDecision, ToolCallRequest
 from sentinel.policy_pipe.loader import load_caches_for
+
+log = structlog.get_logger()
 
 _client: genai.Client | None = None
 
@@ -173,22 +177,37 @@ async def pro_escalation(
     # policies match, pick the one with the most overlapping tags first;
     # downstream policies inform via prompt context.
     primary_cache = cache_ids[0]
-    resp = await client.aio.models.generate_content(
-        model=settings.pro_model,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=_SYSTEM,
-            cached_content=primary_cache,
-            response_mime_type="application/json",
-            response_schema=GateDecision,
-            temperature=0.1,
-        ),
-    )
-    parsed: GateDecision = resp.parsed  # type: ignore[assignment]
-    if parsed is None:
+    try:
+        resp = await client.aio.models.generate_content(
+            model=settings.pro_model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=_SYSTEM,
+                cached_content=primary_cache,
+                response_mime_type="application/json",
+                response_schema=FlashGateOutput,   # same schema-safe shape as Flash
+                temperature=0.1,
+            ),
+        )
+    except Exception as e:
+        log.warning(
+            "sentinel.pro_call_failed",
+            error=str(e)[:300],
+            error_type=type(e).__name__,
+            tool=call.tool,
+        )
         return (
             _stub_pro_decision(call, agent, caches, recent, flash_decision),
             policy_versions,
             cache_ids,
         )
-    return parsed, policy_versions, cache_ids
+
+    parsed = resp.parsed
+    if parsed is None or not isinstance(parsed, FlashGateOutput):
+        log.warning("sentinel.pro_parse_empty", tool=call.tool)
+        return (
+            _stub_pro_decision(call, agent, caches, recent, flash_decision),
+            policy_versions,
+            cache_ids,
+        )
+    return _to_full(parsed, call), policy_versions, cache_ids

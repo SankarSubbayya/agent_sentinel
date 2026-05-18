@@ -66,8 +66,22 @@ async def _async_policy_upload(pdf_path: Path, ttl_s: int) -> int:
     file_id, cache_name, exp = await build_cache_for_pdf(
         pdf_path, display_name=f"{doc.name}-{doc.version}", ttl_seconds=ttl_s
     )
-    await set_cache(doc_id, file_id, cache_name, exp)
-    print(f"cached: id={doc_id} cache={cache_name} expires={exp.isoformat()}")
+    if cache_name and exp:
+        await set_cache(doc_id, file_id, cache_name, exp)
+        print(f"cached: id={doc_id} cache={cache_name} expires={exp.isoformat()}")
+    else:
+        # File uploaded but cache too small — record the file_id only.
+        from datetime import datetime, timezone, timedelta
+        from sqlalchemy import text as _text
+        from sentinel.db import get_session as _gs
+        async with _gs() as s:
+            await s.execute(
+                _text("UPDATE policy_docs SET gemini_file_id = :f WHERE id = :id"),
+                {"f": file_id, "id": str(doc_id)},
+            )
+            await s.commit()
+        print(f"file_uploaded_only: id={doc_id} file_id={file_id} "
+              f"(cache skipped: doc <2048 tokens; Pro will inline the file)")
     return 0
 
 
