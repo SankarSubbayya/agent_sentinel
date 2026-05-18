@@ -164,11 +164,21 @@ uv run sentinel policy list
 Once policies are cached, the next Pro escalation will carry their
 `cache_id` in the receipt's `gemini_cache_ids` field and `policy_versions_used` will be populated with cited names + versions.
 
-### 6. Audit export
+### 6. Audit export + verify
 
 ```bash
 uv run sentinel ledger export --out receipts.jsonl
+uv run sentinel ledger verify                       # verify in-place against Postgres
+uv run sentinel ledger verify --source jsonl --file receipts.jsonl  # verify an export
 ```
+
+The verifier walks every receipt, recomputes the `self_hash` from canonical
+fields, re-derives the HMAC signature with the signing key, and checks each
+`prev_hash → self_hash` link in the per-agent chain. Tampering with one byte
+of a stored receipt (e.g. rewriting a `rationale`) is detected: the chain
+prints `BROKEN`, the verifier exits non-zero, and the specific receipt and
+issue are reported. This is the runnable proof behind the
+*"tamper-evident audit trail"* claim.
 
 ## API surface
 

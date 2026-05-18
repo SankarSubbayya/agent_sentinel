@@ -218,14 +218,20 @@ style: |
   .center { text-align: center; }
   /* Cover slides — aligned with the dashboard's near-black + amber identity
      so the deck reads as an extension of the live product, not a separate
-     marketing artifact. */
-  section.cover {
+     marketing artifact. !important on background because the frontmatter
+     `backgroundColor` directive sets a competing rule with equal specificity. */
+  section.cover,
+  section.cover[data-class~="cover"] {
     background:
       radial-gradient(900px 600px at 92% -8%, rgba(249,115,22,0.16) 0%, transparent 60%),
       radial-gradient(800px 600px at -4% 108%, rgba(124,58,237,0.18) 0%, transparent 55%),
-      linear-gradient(180deg, #0B0E16 0%, #11141E 100%);
-    color: #FAFAFA;
+      linear-gradient(180deg, #0B0E16 0%, #11141E 100%) !important;
+    background-color: #0B0E16 !important;
+    color: #FAFAFA !important;
   }
+  section.cover footer { color: rgba(255,255,255,0.4) !important; }
+  section.cover .footer, section.cover header { color: rgba(255,255,255,0.4) !important; }
+  section.cover section { color: inherit; }
   section.cover .eyebrow {
     display: inline-block;
     font-family: "JetBrains Mono", monospace;
@@ -305,6 +311,9 @@ style: |
 ---
 
 <!-- _class: cover -->
+<!-- _backgroundColor: "#0B0E16" -->
+<!-- _color: "#FAFAFA" -->
+<!-- _paginate: false -->
 
 <span class="eyebrow">Governance Plane · v0.1</span>
 
@@ -617,6 +626,8 @@ via mev-payment-app and gas-oracle). The portfolio carries.
 ---
 
 <!-- _class: cover -->
+<!-- _backgroundColor: "#0B0E16" -->
+<!-- _color: "#FAFAFA" -->
 
 <span class="eyebrow">Quickstart · &lt; 90 seconds</span>
 

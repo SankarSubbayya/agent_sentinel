@@ -81,6 +81,7 @@ POST /v1/agents/run
 | F15    | Per-agent hash chain + HMAC                    | [src/sentinel/audit/ledger.py](src/sentinel/audit/ledger.py) |
 | F16    | Query endpoint                                  | gateway `/v1/receipts` |
 | F17    | Append-only receipts                            | `INSERT`-only DAO in [audit/ledger.py](src/sentinel/audit/ledger.py) |
+| **NEW** | Hash-chain + HMAC verifier (CLI, exits non-zero on tamper) | [src/sentinel/audit/verify.py](src/sentinel/audit/verify.py), `sentinel ledger verify` |
 | F18–F19| Cost events + BU rollup                         | [src/sentinel/cost/meter.py](src/sentinel/cost/meter.py) |
 | F20    | Dashboard bar chart                             | [dashboard/src/app/cost/page.tsx](dashboard/src/app/cost/page.tsx) |
 | F21    | Live timeline via SSE                           | gateway `/v1/events/stream` + [dashboard/src/app/page.tsx](dashboard/src/app/page.tsx) |

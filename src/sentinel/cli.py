@@ -149,6 +149,45 @@ def _cmd_ledger_export(args: argparse.Namespace) -> int:
     return asyncio.run(_async_ledger_export(Path(args.out), args.limit))
 
 
+# ---- ledger verify
+
+async def _async_ledger_verify(
+    source: str, jsonl_path: Path | None, agent_id: str | None, json_out: bool
+) -> int:
+    from dataclasses import asdict
+
+    from sentinel.audit.verify import format_report, verify
+
+    report = await verify(
+        source=source,  # type: ignore[arg-type]
+        jsonl_path=jsonl_path,
+        agent_id=agent_id,
+    )
+    if json_out:
+        payload = {
+            "total": report.total,
+            "verified": report.verified,
+            "all_ok": report.all_ok,
+            "chains": report.chains,
+            "tampered": [asdict(v) for v in report.tampered],
+        }
+        print(json.dumps(payload, default=str, indent=2))
+    else:
+        print(format_report(report))
+    return 0 if report.all_ok else 1
+
+
+def _cmd_ledger_verify(args: argparse.Namespace) -> int:
+    return asyncio.run(
+        _async_ledger_verify(
+            source=args.source,
+            jsonl_path=Path(args.file) if args.file else None,
+            agent_id=args.agent,
+            json_out=args.json,
+        )
+    )
+
+
 # ---- agent run
 
 async def _async_agent_run(agent_id: str, brief: str, max_steps: int) -> int:
@@ -204,6 +243,72 @@ async def _async_demo_run(sentinel_url: str) -> int:
 
 def _cmd_demo_run(args: argparse.Namespace) -> int:
     return asyncio.run(_async_demo_run(args.sentinel_url))
+
+
+# ---- eval run
+
+async def _async_eval_run(sentinel_url: str, json_out: bool, concurrency: int) -> int:
+    from sentinel.eval.runner import format_report, run_eval
+
+    report = await run_eval(sentinel_url=sentinel_url, concurrency=concurrency)
+    if json_out:
+        payload = {
+            "total": report.total,
+            "correct": report.correct,
+            "accuracy": round(report.accuracy, 4),
+            "p50_ms": report.p50_ms,
+            "p95_ms": report.p95_ms,
+            "p99_ms": report.p99_ms,
+            "total_cost_usd": report.cost_total_usd,
+            "elapsed_s": report.elapsed_s,
+            "categories": [
+                {
+                    "category": s.category,
+                    "total": s.total,
+                    "correct": s.correct,
+                    "accuracy": round(s.correct / s.total, 4) if s.total else 0,
+                    "p50_ms": s.p50_ms,
+                    "p95_ms": s.p95_ms,
+                    "p99_ms": s.p99_ms,
+                    "cost_usd": s.cost_total_usd,
+                }
+                for s in report.categories
+            ],
+        }
+        print(json.dumps(payload, indent=2))
+    else:
+        print(format_report(report))
+    return 0 if report.correct == report.total else 1
+
+
+def _cmd_eval_run(args: argparse.Namespace) -> int:
+    return asyncio.run(_async_eval_run(args.sentinel_url, args.json, args.concurrency))
+
+
+async def _async_eval_bench(
+    sentinel_url: str, case_id: str, iterations: int, concurrency: int
+) -> int:
+    from sentinel.eval.cases import CASES
+    from sentinel.eval.runner import format_bench, run_bench
+
+    case = next((c for c in CASES if c.id == case_id), None)
+    if not case:
+        print(f"ERROR: case_id '{case_id}' not found in CASES", file=sys.stderr)
+        return 2
+    report = await run_bench(
+        case=case,
+        sentinel_url=sentinel_url,
+        iterations=iterations,
+        concurrency=concurrency,
+    )
+    print(format_bench(report))
+    return 0
+
+
+def _cmd_eval_bench(args: argparse.Namespace) -> int:
+    return asyncio.run(_async_eval_bench(
+        args.sentinel_url, args.case, args.iterations, args.concurrency,
+    ))
 
 
 # ---- demo seed-policies
@@ -267,6 +372,41 @@ def _build_parser() -> argparse.ArgumentParser:
     e.add_argument("--out", default="receipts.jsonl")
     e.add_argument("--limit", type=int, default=10_000)
     e.set_defaults(func=_cmd_ledger_export)
+    v = sub2.add_parser(
+        "verify",
+        help="walk the hash chain, re-derive HMAC signatures, report tamper",
+    )
+    v.add_argument(
+        "--source",
+        choices=["db", "jsonl"],
+        default="db",
+        help="verify against Postgres (default) or a JSONL export",
+    )
+    v.add_argument("--file", help="path to JSONL export (with --source jsonl)")
+    v.add_argument("--agent", help="restrict to a single agent_id")
+    v.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    v.set_defaults(func=_cmd_ledger_verify)
+
+    ev = sub.add_parser(
+        "eval",
+        help="evaluation harness — labeled scenarios + accuracy + latency report",
+    )
+    evsub = ev.add_subparsers(dest="eval_cmd", required=True)
+    s = evsub.add_parser("run", help="run the eval suite against a live gateway")
+    s.add_argument("--sentinel-url", default="http://127.0.0.1:8088")
+    s.add_argument("--concurrency", type=int, default=4)
+    s.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    s.set_defaults(func=_cmd_eval_run)
+    b = evsub.add_parser(
+        "bench",
+        help="latency stress test — N iterations of one case for reliable percentiles",
+    )
+    b.add_argument("--sentinel-url", default="http://127.0.0.1:8088")
+    b.add_argument("--case", default="happy_sales_search_simple",
+        help="case id from cases.CASES (default: happy_sales_search_simple)")
+    b.add_argument("--iterations", type=int, default=1000)
+    b.add_argument("--concurrency", type=int, default=16)
+    b.set_defaults(func=_cmd_eval_bench)
 
     d = sub.add_parser("demo", help="demo helpers")
     dsub = d.add_subparsers(dest="demo_cmd", required=True)
