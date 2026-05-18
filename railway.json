@@ -5,10 +5,10 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "uvicorn sentinel.gateway:app --host 0.0.0.0 --port $PORT",
+    "startCommand": "sh -c \"uvicorn sentinel.gateway:app --host 0.0.0.0 --port $PORT\"",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3,
     "healthcheckPath": "/healthz",
-    "healthcheckTimeout": 30
+    "healthcheckTimeout": 90
   }
 }
