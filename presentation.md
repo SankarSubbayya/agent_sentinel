@@ -708,11 +708,12 @@ via mev-payment-app and gas-oracle). The portfolio carries.
 
 <p class="lead">
 <strong>Cloudflare for AI agents — built on Gemini.</strong>
-<span class="second">Live on Railway with real Gemini 2.5 Flash + Pro. Per-IP rate-limited so the public URL stays safe.</span>
+<span class="second">Gateway live on Railway with real Gemini 2.5 Flash + Pro. Operator dashboard live on Vercel. Per-IP rate-limited so the public URL stays safe.</span>
 </p>
 
 <div style="background: rgba(20,22,32,0.7); border: 1px solid rgba(249,115,22,0.18); border-radius: 8px; padding: 22px 26px; max-width: 940px; margin-top: 22px;">
-<pre style="background:transparent !important; color:#FED7AA !important; padding:0; margin:0; font-size:18px; line-height:1.65;"><code><span style="color:#A1A1AA;"># Live gateway (real Gemini)</span>
+<pre style="background:transparent !important; color:#FED7AA !important; padding:0; margin:0; font-size:18px; line-height:1.65;"><code><span style="color:#A1A1AA;"># Live dashboard + gateway (real Gemini)</span>
+open <strong>https://agent-sentinel-weld.vercel.app</strong>
 curl <strong>https://agent-sentinel.up.railway.app/healthz</strong>
 
 <span style="color:#A1A1AA;"># Or clone &amp; run yourself</span>

@@ -7,6 +7,7 @@ Track 2 (AI Agents with Google AI Studio) primary, Track 1 (Agent Security & AI 
 
 ## Live demo
 
+- **Operator dashboard (Next.js on Vercel):** [agent-sentinel-weld.vercel.app](https://agent-sentinel-weld.vercel.app/)
 - **Gateway (real Gemini, rate-limited):** [agent-sentinel.up.railway.app](https://agent-sentinel.up.railway.app/healthz)
 - **A2A agent card:** [/.well-known/agent.json](https://agent-sentinel.up.railway.app/.well-known/agent.json)
 - **Try a tool call** (terminal-friendly smoke test):
