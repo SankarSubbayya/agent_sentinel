@@ -6,7 +6,7 @@ import { DecisionBadge, TierPill } from "@/components/decision-badge";
 import { getReceipts, type Receipt } from "@/lib/sentinelApi";
 
 const POLL_MS = 2000;
-const TIMELINE_LIMIT = 500;
+const TIMELINE_LIMIT = 200;
 
 interface Kpis {
   total: number;

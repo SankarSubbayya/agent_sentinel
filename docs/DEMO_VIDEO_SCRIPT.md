@@ -64,17 +64,19 @@
 
 `[Click Brief in the nav]`
 
-`[Click the "Refund w/ embedded injection" sample]`
+`[Click the "Refund over cap" sample]`
 
-> "Same scenario, but now the agent isn't pre-scripted. I give it a natural-language brief and let Gemini pick the tools turn-by-turn."
+> "Now the agent isn't pre-scripted. I give it a natural-language brief — refund customer C-2200 the full $4,999.99 — and let Gemini pick the tools turn-by-turn."
 
 `[Click Run agent. While it runs:]`
 
-> "The agent calls crm.read first — allowed. Then it tries to issue the refund. The injection in the memo is still there. Sentinel catches it the same way. No agent code changes. No prompt engineering."
+> "The agent reads the brief, calls crm.read first — allowed. Then it tries to issue the refund. Gemini does exactly what I asked: refund $4,999.99. But Sentinel's static engine knows the per-call cap is $500. Static deny in under a millisecond."
 
-`[Show the step-by-step trace appearing in the right panel]`
+`[Show the step-by-step trace appearing in the right panel — the refund.issue card should show DENY · STATIC]`
 
-> "This works for any agent framework. The flagship adapter is Google ADK — three lines wrap any FunctionTool. We also support Anthropic Agent SDK, OpenAI tool-calling, CrewAI, MCP, and Google's A2A protocol for agent-to-agent delegations."
+> "Important nuance: a well-behaved LLM like Gemini will refuse to propagate an injection string into a tool call by itself. Sentinel is the second line of defense — for when the agent is compromised, or when the underlying brief asks for something the agent *can* faithfully do but the *organization* doesn't permit. That's what just happened: legitimate request, denied at the policy layer.
+>
+> This works for any agent framework — the flagship adapter is Google ADK, three lines around any FunctionTool. We also wrap Anthropic Agent SDK, OpenAI tool-calling, CrewAI, MCP, and Google's A2A protocol for agent-to-agent delegations."
 
 ---
 
