@@ -29,7 +29,7 @@ from uuid import UUID
 import structlog
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy import text
 
 from dataclasses import asdict
@@ -79,6 +79,76 @@ def create_app() -> FastAPI:
             return await load_agent(agent_id)
         except LookupError as e:
             raise HTTPException(status_code=404, detail=str(e))
+
+    @app.get("/", response_class=HTMLResponse)
+    async def root() -> str:
+        """Landing page so judges who hit the public URL in a browser
+        see something coherent instead of `{"detail":"Not Found"}`."""
+        settings = get_settings()
+        gemini_state = "live" if settings.gemini_api_key else "stub mode"
+        return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Sentinel · Gateway</title>
+<style>
+  body {{
+    background: #0B0E16; color: #E4E4E7;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0; padding: 64px 32px; max-width: 720px; margin-inline: auto;
+    line-height: 1.6;
+  }}
+  h1 {{ font-family: "Iowan Old Style", Georgia, serif; color: #F97316; font-size: 56px; margin: 0 0 12px; letter-spacing: -0.02em; }}
+  h1 .accent {{ font-style: italic; color: #F97316; }}
+  .eyebrow {{ display: inline-block; color: #F97316; border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); padding: 4px 10px; border-radius: 4px; font: 600 11px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 24px; }}
+  .rule {{ width: 56px; height: 2px; background: #F97316; margin: 22px 0; }}
+  p.lead {{ font-size: 19px; color: #D4D4D8; }}
+  a {{ color: #FDBA74; }}
+  code {{ font-family: "JetBrains Mono", ui-monospace, monospace; background: rgba(249,115,22,0.10); border: 1px solid rgba(249,115,22,0.22); color: #FED7AA; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }}
+  .endpoints {{ display: grid; gap: 8px; margin: 24px 0; }}
+  .endpoints a {{ display: flex; gap: 12px; padding: 12px 16px; background: rgba(20,22,32,0.7); border: 1px solid rgba(249,115,22,0.18); border-radius: 8px; text-decoration: none; color: #E4E4E7; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 13px; }}
+  .endpoints a:hover {{ border-color: rgba(249,115,22,0.5); }}
+  .method {{ color: #F97316; font-weight: 600; }}
+  .desc {{ color: #A1A1AA; margin-left: auto; font-size: 12px; }}
+  footer {{ margin-top: 48px; font: 11px/1.5 "JetBrains Mono", ui-monospace, monospace; color: #71717A; letter-spacing: 0.12em; text-transform: uppercase; }}
+</style>
+</head>
+<body>
+  <span class="eyebrow">Governance Plane · {gemini_state}</span>
+  <h1>Agent <span class="accent">Sentinel</span></h1>
+  <div class="rule"></div>
+  <p class="lead">
+    Gemini-powered governance plane that gates every AI agent tool call,
+    signs the audit trail, and meters per-business-unit spend. This is the
+    live gateway service. The dashboard is a separate service.
+  </p>
+
+  <h3 style="color:#F97316; font-size:14px; letter-spacing:0.14em; text-transform:uppercase; font-family:'JetBrains Mono',ui-monospace,monospace;">Public endpoints</h3>
+  <div class="endpoints">
+    <a href="/healthz"><span class="method">GET</span> /healthz <span class="desc">liveness + Gemini state</span></a>
+    <a href="/.well-known/agent.json"><span class="method">GET</span> /.well-known/agent.json <span class="desc">A2A discovery card</span></a>
+    <a href="/v1/receipts?limit=20"><span class="method">GET</span> /v1/receipts <span class="desc">filterable audit trail</span></a>
+    <a href="/v1/cost/rollup?days=7"><span class="method">GET</span> /v1/cost/rollup <span class="desc">per-BU spend</span></a>
+    <a href="/v1/policies"><span class="method">GET</span> /v1/policies <span class="desc">policy library</span></a>
+    <a href="/v1/anchors"><span class="method">GET</span> /v1/anchors <span class="desc">Merkle anchor batches</span></a>
+  </div>
+
+  <h3 style="color:#F97316; font-size:14px; letter-spacing:0.14em; text-transform:uppercase; font-family:'JetBrains Mono',ui-monospace,monospace;">Try a tool call</h3>
+  <pre style="background:rgba(20,22,32,0.85); border:1px solid rgba(249,115,22,0.18); border-radius:8px; padding:18px 22px; overflow-x:auto; font-size:12.5px; color:#E4E4E7;">curl -X POST https://agent-sentinel.up.railway.app/v1/tools/call \\
+  -H 'content-type: application/json' \\
+  -d '{{"agent_id":"agent-sales-01","session_id":"hi","tool":"web.search","args":{{"q":"competitor pricing 2026"}}}}'</pre>
+
+  <p style="color:#A1A1AA; font-size:14px;">
+    Per-IP rate limit: 30 req/min, 500 req/day on Gemini-spending endpoints.
+    Clone <a href="https://github.com/SankarSubbayya/agent_sentinel">github.com/SankarSubbayya/agent_sentinel</a> and run locally for unlimited use.
+  </p>
+
+  <footer>
+    Sankar Subbayya · MIT · Transforming Enterprise Through AI hackathon · May 2026
+  </footer>
+</body>
+</html>"""
 
     @app.get("/healthz")
     async def healthz() -> dict[str, Any]:
