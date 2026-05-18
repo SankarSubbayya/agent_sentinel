@@ -596,82 +596,58 @@ The KPI strip lands the metrics from the PRD's success criteria.
 
 ---
 
-## Three buyers · quantified outcomes
+## Business value · three buyers, one deal
 
 <div class="cards" style="grid-template-columns: repeat(3, 1fr);">
 
 <div class="card">
 <h4>Compliance Officer</h4>
-<p style="font-size: 16px; line-height: 1.55;"><strong>Before Sentinel:</strong> audit pull = 3 days of Splunk forensics + manual policy correlation.</p>
-<p style="font-size: 16px; line-height: 1.55; margin-top: 10px;"><strong>After Sentinel:</strong> filter <code>/receipts</code> by agent + decision → cited timeline in 4 seconds.</p>
-<p style="font-size: 14px; color:#3730A3; margin-top:10px; font-weight:600;">→ days collapse to seconds. Receipt cites exact policy version. Tamper-evident proof for the regulator.</p>
+<p style="font-size:14px; line-height:1.45;"><strong>Before:</strong> 3-day audit pull, manual policy correlation.</p>
+<p style="font-size:14px; line-height:1.45; margin-top:6px;"><strong>After:</strong> filter <code>/receipts</code> → cited timeline in 4 seconds. Hash-chained, HMAC-signed, regulator-grade.</p>
 </div>
 
 <div class="card">
 <h4>CISO</h4>
-<p style="font-size: 16px; line-height: 1.55;"><strong>Before Sentinel:</strong> indirect prompt injection lands as a tool call; SOC discovers it post-incident.</p>
-<p style="font-size: 16px; line-height: 1.55; margin-top: 10px;"><strong>After Sentinel:</strong> drift detector + Pro reasoning blocks the call <em>before execution</em>. Slack alert fires.</p>
-<p style="font-size: 14px; color:#3730A3; margin-top:10px; font-weight:600;">→ breach prevented, not detected. One blocked exfiltration pays for the platform.</p>
+<p style="font-size:14px; line-height:1.45;"><strong>Before:</strong> indirect prompt injection lands as a tool call; SOC discovers it post-incident.</p>
+<p style="font-size:14px; line-height:1.45; margin-top:6px;"><strong>After:</strong> drift detector + Pro reasoning block <em>before execution</em>. Slack alert fires.</p>
 </div>
 
 <div class="card">
 <h4>CFO</h4>
-<p style="font-size: 16px; line-height: 1.55;"><strong>Before Sentinel:</strong> agent spend arrives as one aggregated Gemini bill. No BU attribution.</p>
-<p style="font-size: 16px; line-height: 1.55; margin-top: 10px;"><strong>After Sentinel:</strong> <code>cost_event</code> per call → per-BU rollup, base vs Gemini split.</p>
-<p style="font-size: 14px; color:#3730A3; margin-top:10px; font-weight:600;">→ chargeback ledger out of the box. Sales, Finance, Ops each pay their own way.</p>
+<p style="font-size:14px; line-height:1.45;"><strong>Before:</strong> aggregated Gemini bill. No BU attribution.</p>
+<p style="font-size:14px; line-height:1.45; margin-top:6px;"><strong>After:</strong> <code>cost_event</code> per call → per-BU rollup, base vs Gemini split. Chargeback out of the box.</p>
 </div>
 
 </div>
 
-<p class="lead" style="margin-top:18px; font-size: 22px;">
-Three meetings, three problems. <strong>One Google-native architecture.</strong>
-</p>
+<div class="metric-cards" style="grid-template-columns: repeat(3, 1fr); margin-top:14px;">
 
-<!--
-SPEAKER NOTES — Slide 8 (~25s)
-Business value slide. Each row maps a stakeholder to a UI surface to the
-specific receipt fields that satisfy their requirement. This is the
-"one product, three buyers" punch.
--->
-
----
-
-## Business model · TAM · go-to-market
-
-<div class="cards" style="grid-template-columns: repeat(2, 1fr);">
-
-<div class="card">
-<h4>Who pays · enterprise platform teams</h4>
-<p style="font-size: 16px; line-height: 1.5;">Buyer = the platform/MLOps team that integrates Sentinel and writes the check. <strong>Champions</strong> in compliance, security, and finance ensure renewal.</p>
-<p style="font-size: 15px; color:#52525B; margin-top:10px;">Target ICP: Fortune 2000 with ≥50 agents in production, regulated industries first (healthcare, financial services, gov contractors).</p>
+<div class="metric-card">
+<div class="metric-value">$0.001</div>
+<div class="metric-label">PER DECISION · PRICING</div>
+<p>Aligned to the cost meter. 100K decisions/day = ~$3K/BU/month. <strong>$216K ARR per 6-BU F500</strong> deployment. Below SailPoint ($150K+), Onetrust ($200K+), Drata ($90K+).</p>
 </div>
 
-<div class="card">
-<h4>Pricing · $0.001/decision</h4>
-<p style="font-size: 16px; line-height: 1.5;"><strong>Per-decision pricing</strong> aligned to the cost meter. At 100k decisions/day a single F500 BU pays ~$3K/month. Flagship deployment = 6 BUs = $216K ARR.</p>
-<p style="font-size: 15px; color:#52525B; margin-top:10px;">Compares against: SailPoint ($150K+ for IAM seats), Onetrust ($200K+ floor), Drata ($90K+ floor).</p>
+<div class="metric-card">
+<div class="metric-value">3,500</div>
+<div class="metric-label">TAM · F500-CLASS BUYERS</div>
+<p>Gartner: &gt;70% of F500 have agent pilots in 2026; &lt;10% in production. The blocker is governance, not models. <strong>$200K – $1M ARR each.</strong></p>
 </div>
 
-<div class="card">
-<h4>TAM · 70% of F500 have agent pilots in 2026</h4>
-<p style="font-size: 16px; line-height: 1.5;">Gartner: &gt;70% pilot, &lt;10% prod. The blocker is governance, not models. <strong>~3,500 F500-class buyers</strong> at $200K-$1M ARR each.</p>
-<p style="font-size: 15px; color:#52525B; margin-top:10px;">Phase 2 unlocks SOC2/FedRAMP paths via customer KMS; adapter portfolio expands TAM beyond Gemini-only shops.</p>
-</div>
-
-<div class="card">
-<h4>One blocked exfiltration pays the bill</h4>
-<p style="font-size: 16px; line-height: 1.5;">2026 average breach cost in financial services: <strong>$5.9M</strong> (IBM Cost of a Data Breach). Sentinel blocks <em>one</em> indirect-injection event and the platform pays for itself for the next decade.</p>
-<p style="font-size: 15px; color:#52525B; margin-top:10px;">CFO chargeback ledger also recovers ~$0.50/agent/day in BU attribution that today vanishes into corporate overhead.</p>
+<div class="metric-card">
+<div class="metric-value">$5.9M</div>
+<div class="metric-label">ROI · BREACH MATH</div>
+<p>2026 avg breach in financial services (IBM Cost of a Data Breach). Sentinel blocks <strong>one</strong> indirect-injection event → platform paid for the next decade.</p>
 </div>
 
 </div>
 
 <!--
-SPEAKER NOTES — Business Value slide
-This addresses the prior-hackathon judge feedback that Midstream had
-'no clear go-to-market path.' Concrete buyer, concrete pricing, concrete
-TAM. The 'one blocked exfiltration pays the bill' frame is the clincher
-— per-BU cost meter is the recurring justification.
+SPEAKER NOTES — Business value slide (~25s)
+Addresses the Midstream-judge feedback that Sentinel needed (a) outcome-
+first persona language and (b) a clear go-to-market path. Top row = three
+personas with before/after. Bottom row = pricing, TAM, ROI math. Hit the
+'$5.9M breach pays for the platform for a decade' line as the closer.
 -->
 
 ---
