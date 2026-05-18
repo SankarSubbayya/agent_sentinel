@@ -1,0 +1,23 @@
+# Service-specific Railway config for the dashboard service.
+#
+# Railway, by default, picks Builder = Railpack on new services and refuses
+# to change it via the UI once set. This file hard-pins Builder = DOCKERFILE
+# and points at Dockerfile.dashboard at the repo root, which only COPYs
+# dashboard/* paths (never the Python gateway source).
+#
+# To use: on the Railway dashboard service →
+#   Settings → Config-as-code → Path: dashboard.railway.toml
+#
+# Then redeploy. Railway will respect the build config here instead of
+# Railpack's auto-detect.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.dashboard"
+
+[deploy]
+startCommand = 'sh -c "npx next start -p $PORT"'
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+healthcheckPath = "/"
+healthcheckTimeout = 60
