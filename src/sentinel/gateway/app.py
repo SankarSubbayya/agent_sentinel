@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import tempfile
 import time
 from contextlib import asynccontextmanager
@@ -62,6 +63,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Per-IP rate limit on Gemini-spending endpoints. Disabled when
+    # SENTINEL_ENV != "prod" so local dev / tests are unaffected.
+    if get_settings().__class__ and os.environ.get("SENTINEL_ENV", "").lower() == "prod":
+        from sentinel.gateway.rate_limit import RateLimitMiddleware
+        app.add_middleware(RateLimitMiddleware)
 
     # Mount A2A — exposes /.well-known/agent.json + /a2a/v1/tasks/{send,id}
     from sentinel.a2a import a2a_router
