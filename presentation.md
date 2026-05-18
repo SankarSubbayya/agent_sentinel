@@ -7,29 +7,36 @@ backgroundColor: "#FAFAFB"
 color: "#18181B"
 footer: "Agent Sentinel · Transforming Enterprise Through AI · May 2026"
 style: |
+  @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,0..100,0..1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+
   section {
     font-family: "Inter", -apple-system, "Segoe UI", sans-serif;
     padding: 56px 72px 80px 72px;
     font-size: 22px;
     line-height: 1.5;
+    font-feature-settings: "ss01" on, "cv11" on;
   }
   h1 {
-    font-family: "Playfair Display", "Iowan Old Style", Georgia, serif;
-    color: #3730A3;
-    font-weight: 700;
-    font-size: 64px;
-    margin: 0 0 8px 0;
-    letter-spacing: -0.02em;
-  }
-  h2 {
-    font-family: "Playfair Display", "Iowan Old Style", Georgia, serif;
+    font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
     color: #3730A3;
     font-weight: 600;
-    font-size: 42px;
+    font-size: 72px;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+  }
+  h2 {
+    font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+    color: #3730A3;
+    font-weight: 500;
+    font-size: 44px;
     margin: 0 0 24px 0;
     border-bottom: 2px solid #E0E7FF;
     padding-bottom: 10px;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    font-variation-settings: "opsz" 96, "SOFT" 20, "WONK" 0;
   }
   h3 {
     color: #3730A3;
@@ -210,29 +217,83 @@ style: |
   .small { font-size: 16px; color: #52525B; }
   .center { text-align: center; }
   section.cover {
-    background: linear-gradient(135deg, #312E81 0%, #4F46E5 100%);
+    background:
+      radial-gradient(1100px 700px at 88% -10%, rgba(167,139,250,0.32) 0%, transparent 60%),
+      radial-gradient(900px 600px at 0% 110%, rgba(99,102,241,0.28) 0%, transparent 55%),
+      linear-gradient(135deg, #1E1B4B 0%, #312E81 55%, #4338CA 100%);
     color: white;
   }
-  section.cover h1 { color: white; font-size: 84px; }
-  section.cover .lead { color: #E0E7FF; font-size: 28px; max-width: 100%; }
-  section.cover .meta { color: #C7D2FE; }
+  section.cover .eyebrow {
+    display: inline-block;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: #C7D2FE;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid rgba(199,210,254,0.35);
+    border-radius: 4px;
+    margin-bottom: 28px;
+  }
+  section.cover h1 {
+    color: white;
+    font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
+    font-weight: 500;
+    font-size: 148px;
+    line-height: 0.9;
+    letter-spacing: -0.055em;
+    margin: 0 0 18px 0;
+    font-variation-settings: "opsz" 144, "SOFT" 40, "WONK" 1;
+  }
+  section.cover h1 .accent {
+    color: #FBBF24;
+    font-weight: 400;
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "SOFT" 60, "WONK" 1;
+  }
+  section.cover .lead {
+    color: #E0E7FF;
+    font-size: 26px;
+    max-width: 920px;
+    font-weight: 400;
+    line-height: 1.45;
+  }
+  section.cover .lead strong { color: white; font-weight: 600; }
+  section.cover .meta {
+    color: #A5B4FC;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+  }
   section.cover code { background: rgba(255,255,255,0.15); color: white; }
+  section.cover .rule {
+    width: 64px;
+    height: 3px;
+    background: #FBBF24;
+    margin: 36px 0 24px 0;
+    border-radius: 2px;
+  }
 ---
 
 <!-- _class: cover -->
 
-# Agent Sentinel
+<span class="eyebrow">Governance Plane · v0.1</span>
 
-<p class="lead"><strong>Gemini-powered governance plane for enterprise AI agents.</strong><br/>
-Every action gated. Every receipt signed. Every dollar metered.</p>
+# Agent <span class="accent">Sentinel</span>
 
-<p style="margin-top:32px;">
-  <span class="tag">Track 2 · AI Agents with Google AI Studio</span>
-  <span class="tag tag-outline" style="background:rgba(255,255,255,0.1); color:white; border-color:#A5B4FC;">Track 1 · Agent Security &amp; AI Governance</span>
+<div class="rule"></div>
+
+<p class="lead"><strong>The control plane that gates every AI agent tool call, signs the audit trail, and meters per-BU spend.</strong><br/>
+Built on Gemini 2.5 Flash + Pro with Cached Content over full policy documents.</p>
+
+<p style="margin-top:36px;">
+  <span class="tag">Track 2 · AI Agents · Google AI Studio</span>
+  <span class="tag tag-outline" style="background:rgba(255,255,255,0.08); color:white; border-color:rgba(199,210,254,0.5);">Track 1 · Agent Security &amp; AI Governance</span>
 </p>
 
-<p class="meta" style="margin-top:48px;">
-  Sankar Subbayya · May 19, 2026 · AI &amp; Big Data Expo, San Jose
+<p class="meta" style="margin-top:42px;">
+  SANKAR SUBBAYYA   ·   2026.05.19   ·   AI &amp; BIG DATA EXPO · SAN JOSE
 </p>
 
 <!--
@@ -527,23 +588,25 @@ via mev-payment-app and gas-oracle). The portfolio carries.
 
 <!-- _class: cover -->
 
-# Try it. Now.
+<span class="eyebrow">Quickstart · &lt; 90 seconds</span>
 
-<p class="lead" style="font-size:30px; margin-top:24px;"><strong>Cloudflare for AI agents — built on Gemini.</strong></p>
+# Try it <span class="accent">now</span>.
 
-<div style="background: rgba(255,255,255,0.12); border-radius: 12px; padding: 24px 28px; margin-top: 32px; max-width: 880px;">
-<pre style="background:transparent !important; color:#E0E7FF !important; padding:0; margin:0; font-size:18px; line-height:1.7;"><code>git clone https://github.com/SankarSubbayya/agent_sentinel
+<div class="rule"></div>
+
+<p class="lead" style="font-size:24px; margin-bottom:24px;"><strong>Cloudflare for AI agents — built on Gemini.</strong></p>
+
+<div style="background: rgba(15,12,40,0.55); border: 1px solid rgba(199,210,254,0.18); border-radius: 10px; padding: 22px 26px; max-width: 880px;">
+<pre style="background:transparent !important; color:#E0E7FF !important; padding:0; margin:0; font-size:17px; line-height:1.75;"><code>git clone https://github.com/SankarSubbayya/agent_sentinel
 cd agent_sentinel && createdb agent_sentinel
 uv sync && uv run sentinel init-db
-uv run sentinel serve --port 8088    # gateway
-cd dashboard && npm i && PORT=3030 npm run dev    # dashboard
-
-uv run sentinel demo run             # walks the 2:30 demo</code></pre>
+uv run sentinel serve --port 8088              # gateway
+cd dashboard && npm i && PORT=3030 npm run dev # dashboard
+uv run sentinel demo run                       # 2:30 walkthrough</code></pre>
 </div>
 
-<p style="margin-top:32px; color:#E0E7FF; font-size:20px;">
-<strong style="color:white;">github.com/SankarSubbayya/agent_sentinel</strong> · MIT · Sankar Subbayya<br/>
-<span style="color:#C7D2FE; font-size:17px;">All six demo beats verified end-to-end. Live dashboard at <code style="background:rgba(255,255,255,0.15); color:white;">localhost:3030</code>. Stub-mode fallback so a missing API key never blocks the demo.</span>
+<p class="meta" style="margin-top:36px;">
+GITHUB.COM/SANKARSUBBAYYA/AGENT_SENTINEL   ·   MIT   ·   STUB-MODE READY
 </p>
 
 <!--
