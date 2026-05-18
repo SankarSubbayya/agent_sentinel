@@ -216,63 +216,91 @@ style: |
   }
   .small { font-size: 16px; color: #52525B; }
   .center { text-align: center; }
+  /* Cover slides — aligned with the dashboard's near-black + amber identity
+     so the deck reads as an extension of the live product, not a separate
+     marketing artifact. */
   section.cover {
     background:
-      radial-gradient(1100px 700px at 88% -10%, rgba(167,139,250,0.32) 0%, transparent 60%),
-      radial-gradient(900px 600px at 0% 110%, rgba(99,102,241,0.28) 0%, transparent 55%),
-      linear-gradient(135deg, #1E1B4B 0%, #312E81 55%, #4338CA 100%);
-    color: white;
+      radial-gradient(900px 600px at 92% -8%, rgba(249,115,22,0.16) 0%, transparent 60%),
+      radial-gradient(800px 600px at -4% 108%, rgba(124,58,237,0.18) 0%, transparent 55%),
+      linear-gradient(180deg, #0B0E16 0%, #11141E 100%);
+    color: #FAFAFA;
   }
   section.cover .eyebrow {
     display: inline-block;
     font-family: "JetBrains Mono", monospace;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 500;
-    color: #C7D2FE;
+    color: #F97316;
     letter-spacing: 0.32em;
     text-transform: uppercase;
-    padding: 6px 12px;
-    border: 1px solid rgba(199,210,254,0.35);
-    border-radius: 4px;
-    margin-bottom: 28px;
+    padding: 5px 11px;
+    border: 1px solid rgba(249,115,22,0.45);
+    background: rgba(249,115,22,0.06);
+    border-radius: 3px;
+    margin-bottom: 26px;
   }
   section.cover h1 {
-    color: white;
+    color: #FAFAFA;
     font-family: "Fraunces", "Iowan Old Style", Georgia, serif;
     font-weight: 500;
-    font-size: 148px;
-    line-height: 0.9;
+    font-size: 152px;
+    line-height: 0.88;
     letter-spacing: -0.055em;
-    margin: 0 0 18px 0;
+    margin: 0 0 14px 0;
     font-variation-settings: "opsz" 144, "SOFT" 40, "WONK" 1;
   }
   section.cover h1 .accent {
-    color: #FBBF24;
+    color: #F97316;
     font-weight: 400;
     font-style: italic;
-    font-variation-settings: "opsz" 144, "SOFT" 60, "WONK" 1;
+    font-variation-settings: "opsz" 144, "SOFT" 70, "WONK" 1;
   }
   section.cover .lead {
-    color: #E0E7FF;
-    font-size: 26px;
-    max-width: 920px;
+    color: #E4E4E7;
+    font-size: 25px;
+    max-width: 940px;
     font-weight: 400;
-    line-height: 1.45;
+    line-height: 1.5;
   }
-  section.cover .lead strong { color: white; font-weight: 600; }
+  section.cover .lead strong { color: #FAFAFA; font-weight: 600; }
+  section.cover .lead .second {
+    display: block;
+    margin-top: 10px;
+    color: #A1A1AA;
+    font-size: 21px;
+  }
   section.cover .meta {
-    color: #A5B4FC;
+    color: #71717A;
     font-family: "JetBrains Mono", monospace;
-    font-size: 14px;
-    letter-spacing: 0.04em;
+    font-size: 13px;
+    letter-spacing: 0.18em;
   }
-  section.cover code { background: rgba(255,255,255,0.15); color: white; }
+  section.cover code {
+    background: rgba(249,115,22,0.12);
+    color: #FED7AA;
+    border: 1px solid rgba(249,115,22,0.25);
+  }
   section.cover .rule {
-    width: 64px;
-    height: 3px;
-    background: #FBBF24;
-    margin: 36px 0 24px 0;
-    border-radius: 2px;
+    width: 56px;
+    height: 2px;
+    background: #F97316;
+    margin: 30px 0 22px 0;
+    border-radius: 1px;
+  }
+  section.cover .tag {
+    background: rgba(249,115,22,0.12);
+    color: #FDBA74;
+    border: 1px solid rgba(249,115,22,0.4);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    padding: 5px 11px;
+  }
+  section.cover .tag-outline {
+    background: transparent;
+    color: #A1A1AA;
+    border-color: rgba(161,161,170,0.4);
   }
 ---
 
@@ -284,15 +312,17 @@ style: |
 
 <div class="rule"></div>
 
-<p class="lead"><strong>The control plane that gates every AI agent tool call, signs the audit trail, and meters per-BU spend.</strong><br/>
-Built on Gemini 2.5 Flash + Pro with Cached Content over full policy documents.</p>
-
-<p style="margin-top:36px;">
-  <span class="tag">Track 2 · AI Agents · Google AI Studio</span>
-  <span class="tag tag-outline" style="background:rgba(255,255,255,0.08); color:white; border-color:rgba(199,210,254,0.5);">Track 1 · Agent Security &amp; AI Governance</span>
+<p class="lead">
+<strong>The control plane that gates every AI agent tool call, signs the audit trail, and meters per-BU spend.</strong>
+<span class="second">Built on Gemini 2.5 Flash + Pro with Cached Content over full policy documents.</span>
 </p>
 
-<p class="meta" style="margin-top:42px;">
+<p style="margin-top:32px;">
+  <span class="tag">TRACK 2 · GOOGLE AI STUDIO</span>
+  <span class="tag tag-outline">TRACK 1 · SECURITY &amp; GOVERNANCE</span>
+</p>
+
+<p class="meta" style="margin-top:36px;">
   SANKAR SUBBAYYA   ·   2026.05.19   ·   AI &amp; BIG DATA EXPO · SAN JOSE
 </p>
 
@@ -594,10 +624,13 @@ via mev-payment-app and gas-oracle). The portfolio carries.
 
 <div class="rule"></div>
 
-<p class="lead" style="font-size:24px; margin-bottom:24px;"><strong>Cloudflare for AI agents — built on Gemini.</strong></p>
+<p class="lead">
+<strong>Cloudflare for AI agents — built on Gemini.</strong>
+<span class="second">All six demo beats verified end-to-end. Stub-mode fallback so a missing API key never blocks the demo.</span>
+</p>
 
-<div style="background: rgba(15,12,40,0.55); border: 1px solid rgba(199,210,254,0.18); border-radius: 10px; padding: 22px 26px; max-width: 880px;">
-<pre style="background:transparent !important; color:#E0E7FF !important; padding:0; margin:0; font-size:17px; line-height:1.75;"><code>git clone https://github.com/SankarSubbayya/agent_sentinel
+<div style="background: rgba(20,22,32,0.7); border: 1px solid rgba(249,115,22,0.18); border-radius: 8px; padding: 22px 26px; max-width: 920px; margin-top: 22px;">
+<pre style="background:transparent !important; color:#E4E4E7 !important; padding:0; margin:0; font-size:16px; line-height:1.75;"><code>git clone https://github.com/SankarSubbayya/agent_sentinel
 cd agent_sentinel && createdb agent_sentinel
 uv sync && uv run sentinel init-db
 uv run sentinel serve --port 8088              # gateway
@@ -605,8 +638,8 @@ cd dashboard && npm i && PORT=3030 npm run dev # dashboard
 uv run sentinel demo run                       # 2:30 walkthrough</code></pre>
 </div>
 
-<p class="meta" style="margin-top:36px;">
-GITHUB.COM/SANKARSUBBAYYA/AGENT_SENTINEL   ·   MIT   ·   STUB-MODE READY
+<p class="meta" style="margin-top:32px;">
+GITHUB.COM/SANKARSUBBAYYA/AGENT_SENTINEL   ·   MIT   ·   SANKAR SUBBAYYA
 </p>
 
 <!--
