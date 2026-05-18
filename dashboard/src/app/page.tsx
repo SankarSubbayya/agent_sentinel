@@ -6,6 +6,7 @@ import { DecisionBadge, TierPill } from "@/components/decision-badge";
 import { getReceipts, type Receipt } from "@/lib/sentinelApi";
 
 const POLL_MS = 2000;
+const TIMELINE_LIMIT = 500;
 
 interface Kpis {
   total: number;
@@ -43,7 +44,7 @@ export default function ActivityPage() {
 
   const tick = useCallback(async () => {
     try {
-      const res = await getReceipts({ limit: 80 });
+      const res = await getReceipts({ limit: TIMELINE_LIMIT });
       setError(null);
       const fresh = new Set<string>();
       for (const r of res.receipts) {
@@ -106,7 +107,7 @@ export default function ActivityPage() {
         <KpiTile
           label="Decisions (recent window)"
           value={kpis.total.toLocaleString()}
-          sub="last 80 receipts"
+          sub={`last ${TIMELINE_LIMIT} receipts`}
         />
         <KpiTile
           label="Deny rate"
@@ -143,7 +144,7 @@ export default function ActivityPage() {
             </span>
           </div>
           <div className="mono text-[10px] text-muted-foreground/80">
-            {receipts.length}/80
+            {receipts.length}/{TIMELINE_LIMIT}
           </div>
         </div>
         {receipts.length === 0 ? (
