@@ -544,13 +544,13 @@ different model family — Pro's 1M context + Cached Content is the moat.
 <tr><td><code>0:00</code></td><td><strong>Setup</strong> · three Gemini agents wired through Sentinel</td><td>Sales · Finance · Customer Ops live tiles</td></tr>
 <tr><td><code>0:20</code></td><td><strong>Happy path</strong> · Sales pulls competitor pricing</td><td><span style="color:#15803D; font-weight:600;">● ALLOW</span> · 1 ms · $0.00065 Sales BU</td></tr>
 <tr><td><code>0:50</code></td><td><strong>Policy violation</strong> · Finance emails PII to a vendor</td><td><span style="color:#B45309; font-weight:600;">↻ REWRITE</span> · body redacted · cites <em>Data Handling v3.2</em></td></tr>
-<tr><td><code>1:30</code></td><td><strong>Red team</strong> · prompt injection in refund memo</td><td><span style="color:#B91C1C; font-weight:600;">✕ DENY</span> · drift signal cited · Pro upholds</td></tr>
-<tr><td><code>1:55</code></td><td><strong>Compliance pull</strong> · filter receipts by agent + decision</td><td>cited timeline with policy chips</td></tr>
+<tr><td><code>1:30</code></td><td><strong>Red team</strong> · injection in refund memo via hand-crafted call</td><td><span style="color:#B91C1C; font-weight:600;">✕ DENY</span> · drift signal cited · Pro upholds</td></tr>
+<tr><td><code>1:55</code></td><td><strong>Brief mode</strong> · agent picks tools from a brief; over-cap refund</td><td><span style="color:#B91C1C; font-weight:600;">✕ DENY</span> · static engine · <code>&lt; 5 ms</code></td></tr>
 <tr><td><code>2:15</code></td><td><strong>CFO view</strong> · BU spend rollup</td><td>stacked bar · base vs Gemini · per-BU $ attribution</td></tr>
 </tbody>
 </table>
 
-<p class="lead" style="margin-top:20px;"><strong>Bonus — Brief mode.</strong> Type a natural-language brief at <code>/agent</code> (or <code>sentinel agent run</code>) — Gemini Flash function-calls turn-by-turn while Sentinel gates every call. Same audit + cost ledger as the direct API.</p>
+<p class="lead" style="margin-top:18px; font-size:21px;"><strong>Defense in depth.</strong> Red Team shows Sentinel catching an injection a compromised agent would propagate. Brief mode shows it catching a policy violation that a <em>well-behaved</em> Gemini will faithfully execute (refund over the $500 cap). Both gates fire from the same pipeline.</p>
 
 <!--
 SPEAKER NOTES — Slide 6 (~5s — then switch to live demo)
