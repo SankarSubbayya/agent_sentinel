@@ -147,6 +147,43 @@ style: |
     gap: 14px;
     margin: 12px 0 18px 0;
   }
+  .metric-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 18px 0 0 0;
+  }
+  .metric-card {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 18px 18px 16px 18px;
+    border-top: 3px solid #4F46E5;
+  }
+  .metric-value {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1;
+    color: #1E1B4B;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px 0;
+  }
+  .metric-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6B7280;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 12px 0;
+  }
+  .metric-card p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #3F3F46;
+  }
   .kpi > div {
     background: white;
     border: 1px solid #E5E7EB;
@@ -500,7 +537,7 @@ different model family — Pro's 1M context + Cached Content is the moat.
 </tbody>
 </table>
 
-<p class="lead" style="margin-top:20px;">Bonus: feed a natural-language brief — <em>"process refund for C-7733"</em> — and Gemini picks tools turn-by-turn while Sentinel gates each one.</p>
+<p class="lead" style="margin-top:20px;"><strong>Bonus — Brief mode.</strong> Type a natural-language brief at <code>/agent</code> (or <code>sentinel agent run</code>) — Gemini Flash function-calls turn-by-turn while Sentinel gates every call. Same audit + cost ledger as the direct API.</p>
 
 <!--
 SPEAKER NOTES — Slide 6 (~5s — then switch to live demo)
@@ -511,32 +548,29 @@ If the live demo flakes, fall back to the recorded 2:30 video.
 
 ---
 
-## What's defensible
+## What's defensible — and measured
 
-<div class="cards" style="grid-template-columns: repeat(2, 1fr);">
-<div class="card">
-<h4>Hash-chained, HMAC-signed receipts</h4>
-<p>Per-agent chain — <code>prev_hash → self_hash</code>. Rewriting one row invalidates every later row. Tamper-evident <strong>without</strong> a blockchain.</p>
+<div class="metric-cards">
+<div class="metric-card">
+<div class="metric-value">96.8%</div>
+<div class="metric-label">EVAL ACCURACY</div>
+<p>150 / 155 cases pass across 12 categories — happy path, PII variants, injection variants, role matrix, regulatory, edge cases, drift. <code>sentinel eval run</code>.</p>
 </div>
-<div class="card">
-<h4>Drift detection before Flash</h4>
-<p>Cheap signal — injection markers + tool-vs-declared-goal — escalates the indirect-prompt-injection case to Pro instead of letting Flash decide alone.</p>
+<div class="metric-card">
+<div class="metric-value">3 ms</div>
+<div class="metric-label">LATENCY P99</div>
+<p>Across 155 cases. p50 0 ms · p95 2 ms. Static engine handles 34% in &lt;1 ms; Flash 47% in &lt;5 ms; Pro 20% in &lt;10 ms.</p>
 </div>
-<div class="card">
-<h4>Per-BU cost meter</h4>
-<p>One <code>cost_event</code> per gated call, base + Gemini split. CFO chargeback ledger is out of the box, not a Phase-2 ask.</p>
+<div class="metric-card">
+<div class="metric-value">BROKEN</div>
+<div class="metric-label">TAMPER DETECTED</div>
+<p>Per-agent <code>prev_hash → self_hash</code> + HMAC. <code>sentinel ledger verify</code> caught a single-byte mutation in a stored rationale and marked the chain BROKEN. Exit code 1.</p>
 </div>
-<div class="card">
-<h4>Stub-mode resilience</h4>
-<p>Both Flash and Pro have deterministic fallbacks. Demo correctness <strong>does not depend on a live API call.</strong> Stub Pro never weakens a Flash deny.</p>
+<div class="metric-card">
+<div class="metric-value">~600</div>
+<div class="metric-label">POLICYPIPE LOC</div>
+<p>Five Python modules. No chunking, no vector DB, no LangChain. Direct Gemini Files API + Cached Content. Visible to sponsor judges.</p>
 </div>
-</div>
-
-<div class="kpi" style="margin-top:24px;">
-<div><div class="label">Flash p95</div><div class="value">&lt; 100 ms</div><div class="sub">verified · stub & live</div></div>
-<div><div class="label">Pro escalation</div><div class="value">3–5%</div><div class="sub">of total calls</div></div>
-<div><div class="label">Per-call cost</div><div class="value">&lt; $0.001</div><div class="sub">amortized · Cached Content</div></div>
-<div><div class="label">PolicyPipe</div><div class="value">~600 LOC</div><div class="sub">no chunking · no vector DB</div></div>
 </div>
 
 <!--
