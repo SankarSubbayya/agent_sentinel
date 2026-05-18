@@ -5,9 +5,22 @@
 Built for the [Transforming Enterprise Through AI](https://lablab.ai) hackathon — May 11–19, 2026.
 Track 2 (AI Agents with Google AI Studio) primary, Track 1 (Agent Security & AI Governance) secondary.
 
+## Live demo
+
+- **Gateway (real Gemini, rate-limited):** [agent-sentinel.up.railway.app](https://agent-sentinel.up.railway.app/healthz)
+- **A2A agent card:** [/.well-known/agent.json](https://agent-sentinel.up.railway.app/.well-known/agent.json)
+- **Try a tool call** (terminal-friendly smoke test):
+  ```bash
+  curl -X POST https://agent-sentinel.up.railway.app/v1/tools/call \
+    -H 'content-type: application/json' \
+    -d '{"agent_id":"agent-sales-01","session_id":"hello","tool":"web.search","args":{"q":"competitor pricing 2026"}}'
+  ```
+
+Per-IP rate limit is `30 req/min, 500 req/day` on Gemini-spending endpoints — clone locally for unlimited use.
+
 ---
 
-## Try it in 60 seconds
+## Try it in 60 seconds (local)
 
 The submission video shows the full demo end-to-end. To run it yourself:
 

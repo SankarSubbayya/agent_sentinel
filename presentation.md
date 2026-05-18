@@ -708,19 +708,22 @@ via mev-payment-app and gas-oracle). The portfolio carries.
 
 <p class="lead">
 <strong>Cloudflare for AI agents — built on Gemini.</strong>
-<span class="second">All six demo beats verified end-to-end. Stub-mode fallback so a missing API key never blocks the demo.</span>
+<span class="second">Live on Railway with real Gemini 2.5 Flash + Pro. Per-IP rate-limited so the public URL stays safe.</span>
 </p>
 
-<div style="background: rgba(20,22,32,0.7); border: 1px solid rgba(249,115,22,0.18); border-radius: 8px; padding: 22px 26px; max-width: 920px; margin-top: 22px;">
-<pre style="background:transparent !important; color:#E4E4E7 !important; padding:0; margin:0; font-size:16px; line-height:1.75;"><code>git clone https://github.com/SankarSubbayya/agent_sentinel
-cd agent_sentinel && createdb agent_sentinel
-uv sync && uv run sentinel init-db
-uv run sentinel serve --port 8088              # gateway
-cd dashboard && npm i && PORT=3030 npm run dev # dashboard
-uv run sentinel demo run                       # 2:30 walkthrough</code></pre>
+<div style="background: rgba(20,22,32,0.7); border: 1px solid rgba(249,115,22,0.18); border-radius: 8px; padding: 22px 26px; max-width: 940px; margin-top: 22px;">
+<pre style="background:transparent !important; color:#FED7AA !important; padding:0; margin:0; font-size:18px; line-height:1.65;"><code><span style="color:#A1A1AA;"># Live gateway (real Gemini)</span>
+curl <strong>https://agent-sentinel.up.railway.app/healthz</strong>
+
+<span style="color:#A1A1AA;"># Or clone &amp; run yourself</span>
+git clone github.com/SankarSubbayya/agent_sentinel
+uv sync &amp;&amp; uv run sentinel serve --port 8088
+cd dashboard &amp;&amp; npm i &amp;&amp; PORT=3030 npm run dev
+uv run sentinel demo run     <span style="color:#A1A1AA;"># walk the demo</span>
+uv run sentinel ledger verify <span style="color:#A1A1AA;"># INTEGRITY: PASS</span></code></pre>
 </div>
 
-<p class="meta" style="margin-top:32px;">
+<p class="meta" style="margin-top:28px;">
 GITHUB.COM/SANKARSUBBAYYA/AGENT_SENTINEL   ·   MIT   ·   SANKAR SUBBAYYA
 </p>
 

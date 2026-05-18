@@ -38,7 +38,17 @@ from sentinel.models import ToolCallRequest
 a2a_router = APIRouter()
 
 
-def sentinel_agent_card(base_url: str = "http://127.0.0.1:8088") -> AgentCard:
+def _public_base_url() -> str:
+    """Honor SENTINEL_PUBLIC_URL when deployed (Railway sets the public domain
+    via that env var in our setup); fall back to localhost for dev."""
+    import os
+    url = os.environ.get("SENTINEL_PUBLIC_URL", "").rstrip("/")
+    return url or "http://127.0.0.1:8088"
+
+
+def sentinel_agent_card(base_url: str | None = None) -> AgentCard:
+    if base_url is None:
+        base_url = _public_base_url()
     """The Sentinel A2A agent card. Identifies Sentinel as a governance
     peer that other A2A agents can route their inter-agent traffic
     through for policy enforcement, audit trails, and cost metering."""
