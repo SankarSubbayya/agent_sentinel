@@ -17,6 +17,7 @@ Other adapters (provided for portability):
   - crewai_adapter      — CrewAI BaseTool subclass
   - mcp_adapter         — generic MCP `tools/call` envelope (canonical case)
 """
+from sentinel.adapters.a2a_adapter import SentinelA2AClient
 from sentinel.adapters.core import SentinelGate, gate_tool_call, sentinel_gated
 from sentinel.adapters.google_adk_adapter import (
     SentinelADKAgent,
@@ -30,5 +31,6 @@ __all__ = [
     "sentinel_gated",
     "SentinelADKAgent",
     "sentinelize_adk_tool",
+    "SentinelA2AClient",
     "MCPSentinelAdapter",
 ]

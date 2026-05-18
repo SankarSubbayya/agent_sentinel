@@ -52,14 +52,20 @@ def evaluate_static(call: ToolCallRequest, agent: AgentRecord) -> StaticVerdict:
     if call.tool in _GLOBAL_DENY:
         return StaticVerdict("deny", f"Tool '{call.tool}' is on the global denylist.", "global_deny")
 
+    # A2A agent-to-agent delegations are policy decisions, not ACL ones —
+    # the role + target_agent + payload combination is reasoned about by
+    # Flash (and escalated to Pro on ambiguity). Skip role ACL for these.
+    is_a2a_delegate = call.tool.startswith("agent.delegate.")
+
     # Role-based ACL: if a role has an explicit allowlist, the tool must be in it.
-    allowed = _ROLE_TOOL_ACL.get(agent.role)
-    if allowed is not None and call.tool not in allowed:
-        return StaticVerdict(
-            "deny",
-            f"Role '{agent.role}' is not permitted to invoke tool '{call.tool}'.",
-            "role_acl",
-        )
+    if not is_a2a_delegate:
+        allowed = _ROLE_TOOL_ACL.get(agent.role)
+        if allowed is not None and call.tool not in allowed:
+            return StaticVerdict(
+                "deny",
+                f"Role '{agent.role}' is not permitted to invoke tool '{call.tool}'.",
+                "role_acl",
+            )
 
     # Refund cap.
     if call.tool == "refund.issue":

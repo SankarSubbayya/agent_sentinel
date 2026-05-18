@@ -63,6 +63,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Mount A2A — exposes /.well-known/agent.json + /a2a/v1/tasks/{send,id}
+    from sentinel.a2a import a2a_router
+    app.include_router(a2a_router)
+
     async def _load_agent_or_404(agent_id: str):
         try:
             return await load_agent(agent_id)

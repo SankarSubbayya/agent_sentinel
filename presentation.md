@@ -487,29 +487,29 @@ in long context via Cached Content.
 
 ---
 
-## Why Gemini — the sponsor-native story
+## Why Gemini — built on Google's stack end to end
 
 <div class="cards" style="grid-template-columns: repeat(2, 1fr);">
 <div class="card">
-<h4>Gemini 2.5 Flash · the gate</h4>
-<p>Structured output via <code>response_schema=GateDecision</code>. <code>thinking_budget=0</code> for sub-100ms p95. Every tool call hits Flash.</p>
+<h4>Gemini 2.5 Flash + Pro · the gating brain</h4>
+<p>Flash (<code>response_schema</code>, <code>thinking_budget=0</code>) gates every call in &lt;100 ms p95. Pro (<code>cached_content</code> over whole policy docs, 1M context) handles the ~3–5% that escalate. No chunking, no RAG drift.</p>
 </div>
 <div class="card">
-<h4>Gemini 2.5 Pro · the reasoner</h4>
-<p>1M-context window means Pro consumes <strong>whole policy documents</strong> per call. <strong>No chunking. No RAG drift.</strong> Cited rationale.</p>
+<h4>Cached Content + Files API · the economics</h4>
+<p>~75% token cost savings on stable policy bundles. Refreshed every 6 h via PolicyPipe (5 modules, ~600 LOC). No LangChain wrapper hiding the SDK from sponsor judges.</p>
 </div>
 <div class="card">
-<h4>Cached Content · the economics</h4>
-<p><strong>~75% token cost savings</strong> on stable policy bundles. Refreshed every 6h. Per-call governance becomes economically viable.</p>
+<h4>Google ADK · flagship adapter</h4>
+<p>Three-line wrap of any <code>FunctionTool</code> or whole <code>Agent</code>. Every tool the ADK agent calls is gated, signed, costed. ADK + Sentinel + Gemini = a complete first-party Google stack for governed agents.</p>
 </div>
 <div class="card">
-<h4>Files API · the policy library</h4>
-<p>Authoritative policy storage. Multimodal extraction via Flash. PolicyPipe is 5 modules, ~600 LOC. No LangChain wrapper hiding the SDK.</p>
+<h4>Google A2A · governance peer</h4>
+<p>Sentinel publishes its own A2A agent card at <code>/.well-known/agent.json</code> and gates inter-agent task delegations via <code>POST /a2a/v1/tasks/send</code>. MCP gates <em>agent→tool</em>; A2A gates <em>agent→agent</em>. Sentinel does both.</p>
 </div>
 </div>
 
 <p class="small center" style="margin-top:16px;">
-This combination — Flash structured output + Pro long-context + Cached Content + Files API — is <strong>uniquely possible on Gemini</strong>.
+<strong>Gemini 2.5 + ADK + A2A + Cached Content + Files API</strong> — uniquely possible on Google's stack.
 </p>
 
 <!--
