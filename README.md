@@ -7,6 +7,28 @@ Track 2 (AI Agents with Google AI Studio) primary, Track 1 (Agent Security & AI 
 
 ---
 
+## Try it in 60 seconds
+
+The submission video shows the full demo end-to-end. To run it yourself:
+
+```bash
+git clone https://github.com/SankarSubbayya/agent_sentinel
+cd agent_sentinel
+createdb agent_sentinel        # local Postgres 16 via brew, or docker compose up postgres
+cp .env.example .env           # then set GEMINI_API_KEY (optional — stub mode works without it)
+uv sync && uv run sentinel init-db
+uv run sentinel serve --port 8088     # gateway
+cd dashboard && npm i && PORT=3030 npm run dev   # dashboard at http://localhost:3030
+
+uv run sentinel demo run               # walks the 6-beat PRD demo
+uv run sentinel eval run               # 155 labeled scenarios, p50 2 s p95 5 s, ~$0.18
+uv run sentinel ledger verify          # proves the audit trail is tamper-evident
+```
+
+The repo is the production-ready reference implementation; the video shows it running with real Gemini.
+
+---
+
 ## What it is
 
 Enterprises deploying AI agents face three blockers: no audit trail, no policy enforcement, no cost accountability. Agent Sentinel solves all three.
