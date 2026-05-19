@@ -33,7 +33,7 @@ def _mock_web_search(args: dict[str, Any]) -> str:
             "  - Competitor 'Beta' Pro: $429/mo (50 seats, 1yr)"
         )
     if "refund" in q or "policy" in q:
-        return "1 result: ACME refund policy v1.4 — caps at $500 for automated ops."
+        return "2 results: ACME refund procedures page; ACME refund FAQ for customers."
     return "3 generic search results returned."
 
 
@@ -202,7 +202,7 @@ CATALOG: dict[str, ToolDecl] = {
     ),
     "email.send_external": ToolDecl(
         name="email.send_external",
-        description="Send an email to an external recipient. PII is auto-redacted.",
+        description="Send an email to an external recipient with subject and body.",
         parameters={
             "type": "object",
             "properties": {
