@@ -136,7 +136,7 @@ CATALOG: dict[str, ToolDecl] = {
     ),
     "refund.issue": ToolDecl(
         name="refund.issue",
-        description="Issue a refund. Automated ops are capped at $500/refund.",
+        description="Issue a refund to a customer for a given USD amount with a free-text memo. Use whatever amount the brief specifies.",
         parameters={
             "type": "object",
             "properties": {
