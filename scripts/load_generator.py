@@ -7,7 +7,9 @@ the operator dashboard, cost rollup, and verify command all look like
 they're attached to a real production fleet."""
 from __future__ import annotations
 
+import argparse
 import asyncio
+import os
 import random
 import sys
 import time
@@ -16,7 +18,7 @@ from typing import Any
 import httpx
 
 
-SENTINEL_URL = "http://127.0.0.1:8088"
+SENTINEL_URL = os.environ.get("SENTINEL_URL", "http://127.0.0.1:8088")
 
 
 AGENTS = [
@@ -109,7 +111,9 @@ def _craft_call(agent_id: str, allowed_tools: list[str], i: int) -> dict[str, An
 
 async def _post(client: httpx.AsyncClient, payload: dict) -> tuple[int, str]:
     try:
-        r = await client.post(f"{SENTINEL_URL}/v1/tools/call", json=payload, timeout=10.0)
+        r = await client.post(
+            f"{SENTINEL_URL}/v1/tools/call", json=payload, timeout=20.0,
+        )
         return r.status_code, r.json().get("decision", "?") if r.status_code == 200 else "err"
     except Exception:
         return 0, "err"
@@ -119,17 +123,27 @@ async def main(total: int = 2000, concurrency: int = 16) -> int:
     random.seed(42)
     t0 = time.perf_counter()
     sem = asyncio.Semaphore(concurrency)
-    counts = {"allow": 0, "deny": 0, "rewrite": 0, "err": 0}
+    counts: dict[str, int] = {"allow": 0, "deny": 0, "rewrite": 0, "err": 0}
+    rate_limited = 0
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=25.0) as client:
         async def _one(i: int) -> None:
+            nonlocal rate_limited
             async with sem:
                 agent_id, tools = random.choice(AGENTS)
                 payload = _craft_call(agent_id, tools, i)
-                _, decision = await _post(client, payload)
-                counts[decision] = counts.get(decision, 0) + 1
-                if i and i % 100 == 0:
-                    print(f"  {i:>5}/{total}  allow={counts['allow']} deny={counts['deny']} rewrite={counts['rewrite']}")
+                status, decision = await _post(client, payload)
+                if status == 429:
+                    rate_limited += 1
+                    counts["err"] = counts.get("err", 0) + 1
+                else:
+                    counts[decision] = counts.get(decision, 0) + 1
+                if i and i % 50 == 0:
+                    print(
+                        f"  {i:>5}/{total}  allow={counts['allow']} "
+                        f"deny={counts['deny']} rewrite={counts['rewrite']} "
+                        f"429={rate_limited}"
+                    )
 
         await asyncio.gather(*(_one(i) for i in range(total)))
 
@@ -139,10 +153,19 @@ async def main(total: int = 2000, concurrency: int = 16) -> int:
     print(f"  deny:    {counts['deny']:>5} ({counts['deny']/total*100:.1f}%)")
     print(f"  rewrite: {counts['rewrite']:>5} ({counts['rewrite']/total*100:.1f}%)")
     if counts["err"]:
-        print(f"  errors:  {counts['err']:>5}")
+        print(f"  errors:  {counts['err']:>5}  (429s: {rate_limited})")
     return 0
 
 
 if __name__ == "__main__":
-    n = int(sys.argv[1]) if len(sys.argv) > 1 else 2000
-    sys.exit(asyncio.run(main(total=n)))
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("total", type=int, nargs="?", default=2000)
+    p.add_argument("--concurrency", type=int, default=16)
+    p.add_argument(
+        "--sentinel-url",
+        default=SENTINEL_URL,
+        help=f"Override SENTINEL_URL env var (current: {SENTINEL_URL})",
+    )
+    args = p.parse_args()
+    SENTINEL_URL = args.sentinel_url  # noqa: F811 — intentional rebind
+    sys.exit(asyncio.run(main(total=args.total, concurrency=args.concurrency)))
