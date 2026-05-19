@@ -624,8 +624,8 @@ The KPI strip lands the metrics from the PRD's success criteria.
 
 <div class="metric-card">
 <div class="metric-value">$0.001</div>
-<div class="metric-label">PER DECISION · PRICING</div>
-<p>Aligned to the cost meter. 100K decisions/day = ~$3K/BU/month. <strong>$216K ARR per 6-BU F500</strong> deployment. Below SailPoint ($150K+), Onetrust ($200K+), Drata ($90K+).</p>
+<div class="metric-label">PER DECISION · 70% GM</div>
+<p>Aligned to the cost meter. 100K decisions/day = <strong>$216K ARR per 6-BU F500</strong>. <strong>~70% gross margin</strong> at headline price (~$50K Gemini, ~$10K infra, ~$5K support per customer). Datadog/CrowdStrike band.</p>
 </div>
 
 <div class="metric-card">

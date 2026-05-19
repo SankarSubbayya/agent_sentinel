@@ -154,11 +154,13 @@ curl -X POST https://agent-sentinel.up.railway.app/v1/agent/run \
 
 ---
 
-## 4:15 – 4:45 · Business Value
+## 4:15 – 4:55 · Business Value + Unit Economics
 
 **[Slide 8 — Business value, three buyers one deal]**
 
-> "Pricing: one tenth of a cent per decision. One hundred thousand decisions a day is three thousand dollars per business unit per month. A six-BU Fortune 500 deployment is two hundred sixteen thousand dollars annual recurring revenue.
+> "Pricing: one tenth of a cent per decision. One hundred thousand decisions a day is three thousand dollars per business unit per month. A six-BU Fortune 500 deployment is **two hundred sixteen thousand dollars annual recurring revenue**.
+>
+> And the unit economics work. About **seventy percent gross margin** at headline price — every customer dollar splits roughly seventy cents to us, twenty cents to Google for Gemini, ten cents to Postgres and compute. That's the same band as Datadog and CrowdStrike. The architecture is designed around it: every call the static engine catches before it ever hits Flash is pure margin.
 >
 > TAM: thirty-five hundred F500-class buyers with active agent programs. Two hundred thousand to a million dollars ARR each.
 >
@@ -170,15 +172,11 @@ curl -X POST https://agent-sentinel.up.railway.app/v1/agent/run \
 
 ---
 
-## 4:45 – 5:00 · The Close
+## 4:55 – 5:00 · The Close
 
 **[Slide 10 — Try it now]**
 
-> "Cloudflare for AI agents. Built on Gemini.
->
-> The gateway is live at **agent-sentinel.up.railway.app** with real Gemini Flash and Pro. The dashboard is live at **agent-sentinel-weld.vercel.app**. The repo is open-source. Clone it, run `sentinel demo`, walk the six beats, run `sentinel ledger verify`, see INTEGRITY: PASS.
->
-> Thank you."
+> "Cloudflare for AI agents. Built on Gemini. Gateway and dashboard live — URLs on screen. Repo is open-source. `sentinel ledger verify` — INTEGRITY: PASS. Thank you."
 
 *Hold the slide. Don't take a curtain call. Wait for questions.*
 
@@ -210,6 +208,7 @@ If anything during the live demo flakes, fall back in this order:
 Q&A is where the deal closes. Likely questions:
 
 - **"How is this different from Datadog / Cribl / LangSmith observability?"** — Those are read-only after the fact. Sentinel is *in-line* and *blocks*. Plus the receipts cite policy versions, which observability tools don't model.
+- **"Walk me through the unit economics."** — Per-customer COGS for a $216K F500 deployment is about $65K — call it 30% of revenue. The big line is Gemini API at roughly $50K/year (Flash on ~62% of calls, Pro on ~5% with Cached Content); Postgres + compute + infra are under $10K combined; amortized support is another $5K. **Gross margin ~70% at headline price, ~75-80% at volume-discount scale.** The dial that matters is Pro escalation rate — every percentage point we can keep at the static or drift gate instead of Pro is roughly $700 per customer per year in saved Gemini cost. That's why static + drift exist upstream of Flash.
 - **"What about latency?"** — Static engine and drift detector add under five milliseconds. Flash gate is around 1.5 seconds p50, three to five seconds p95 when Pro escalates. Most calls finish under two seconds end-to-end.
 - **"What about Gemini outage?"** — Sentinel runs end-to-end without a Gemini key — Flash and Pro both have deterministic stub fallbacks. The static engine and audit trail keep working. You degrade to "policy-engine-only" mode, but you never fail open.
 - **"Why Gemini specifically?"** — Pro's 1M-context window plus Cached Content is the only model stack today that lets us consume an entire policy book inline per escalation without chunking. That's not a portability story; it's a moat.
