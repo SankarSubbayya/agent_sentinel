@@ -76,19 +76,30 @@ Two-tier model usage — the Track 2 Gemini-native story:
 ## Architecture
 
 ```
-Agent fleet ─MCP─► Sentinel core ─► External tools
-                       │
-                       ├── Static policy engine (regex/ACL, <5ms)
-                       ├── Drift detector (recent-history signal)
-                       ├── Flash gate (every call, <100ms)
-                       ├── Pro reasoner (escalations, full policy docs via Cached Content)
-                       ├── Audit ledger (Postgres, hash-chained HMAC receipts)
-                       └── Cost meter (per-BU, $/call rules)
+   ┌─ MCP   (agent → tool)  ─┐
+   │                         │              ┌─► External tools (CRM, email, DB, web, …)
+   Agent fleet ──────────────┼──► Sentinel ─┤
+   │                         │     core     └─► (or BLOCKED / REWRITTEN by policy)
+   └─ A2A   (agent → agent) ─┘
+                              │
+                              ├── Static policy engine    (regex / ACL / refund cap · <5 ms)
+                              ├── Drift detector          (injection markers + tool-vs-goal · ~0 ms)
+                              ├── Flash gate              (Gemini 2.5 Flash · every call · <100 ms)
+                              ├── Pro reasoner            (Gemini 2.5 Pro · Cached Content over full policy docs)
+                              ├── Audit ledger            (Postgres · hash-chained · HMAC-signed via KMS)
+                              │       └─► Slack/Teams alerts on deny+rewrite (severity-gated)
+                              │       └─► Merkle anchor batches (local file · OpenTimestamps · Arc state channel)
+                              ├── Cost meter              (per-BU · $/call rules · CFO rollup)
+                              ├── Observe-only mode       (POST /v1/observe — read-only deployments)
+                              └── Per-IP rate limiter     (production-only · sliding window)
 
-          Operator dashboard (Next.js) — timeline, replay, BU rollup, red-team console
+   Adapters: Google ADK · Anthropic Agent SDK · OpenAI tool-calling · CrewAI · generic MCP
+
+   Operator dashboard (Next.js · Vercel) — live timeline · receipts · BU rollup · red-team console · policy library
+   Gateway (FastAPI · Railway) — public, real Gemini, per-IP rate-limited
 ```
 
-Full architecture: [CLAUDE.md](CLAUDE.md) · Product spec: [PRD.md](PRD.md)
+Full architecture: [CLAUDE.md](CLAUDE.md) · Product spec: [PRD.md](PRD.md) · Deploy lessons: [docs/DEPLOYMENT_POSTMORTEM.md](docs/DEPLOYMENT_POSTMORTEM.md)
 
 ## Layout
 
